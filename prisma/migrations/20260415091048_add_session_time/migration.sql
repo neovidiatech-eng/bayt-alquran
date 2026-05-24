@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Plans" ADD COLUMN     "sessionTime" DOUBLE PRECISION NOT NULL DEFAULT 0;

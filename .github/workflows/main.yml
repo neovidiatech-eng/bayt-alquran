@@ -1,0 +1,157 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+    inputs:
+      run_seed:
+        description: "Run database seeders after deploy?"
+        required: false
+        default: "false"
+        type: choice
+        options: ["false", "true"]
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  # ─────────────────────────────────────────────
+  # CI: Validate code quality and build integrity
+  # ─────────────────────────────────────────────
+  ci:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/bait_ci
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      - name: Validate Prisma Schema
+        run: npx prisma validate
+
+      - name: Run Lint (if exists)
+        run: npm run lint --if-present
+
+      - name: Build Project (if exists)
+        run: npm run build --if-present
+
+      - name: Build Docker Image (smoke test)
+        run: docker build -t bait_app:ci-test .
+
+  # ─────────────────────────────────────────────
+  # CD: Deploy to VPS via SSH
+  # ─────────────────────────────────────────────
+  cd:
+    needs: ci
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: root
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+          script: |
+            set -e
+
+            cd /root/backend/bait
+
+            # ── Step 1: Pull latest code ──────────────────────────────────────
+            git pull origin main
+
+            # ── Step 2: Write .env to project root ───────────────────────────
+            cat > .env << 'ENVEOF'
+            DATABASE_URL=postgresql://${{ secrets.POSTGRES_USER }}:${{ secrets.POSTGRES_PASSWORD }}@postgres:5432/${{ secrets.POSTGRES_DB }}
+            POSTGRES_USER=${{ secrets.POSTGRES_USER }}
+            POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
+            POSTGRES_DB=${{ secrets.POSTGRES_DB }}
+            POSTGRES_PORT=5437
+            REDIS_URL=${{ secrets.REDIS_URL }}
+            REDIS_PORT=6387
+            ENCRYPT_KEY=${{ secrets.ENCRYPT_KEY }}
+            SALT=${{ secrets.SALT }}
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
+            JWT_SECRET_ACCESS_ADMIN=${{ secrets.JWT_SECRET_ACCESS_ADMIN }}
+            JWT_SECRET_REFRESH_ADMIN=${{ secrets.JWT_SECRET_REFRESH_ADMIN }}
+            APP_EMAIL=${{ secrets.APP_EMAIL }}
+            APP_PASSWORD=${{ secrets.APP_PASSWORD }}
+            GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
+            PORT=3007
+            APP_PORT=3007
+            CORS_ORIGINS=http://localhost:3000,http://localhost:5173,https://dashboard.hedaya-academy.com
+            NODE_ENV=production
+            PGADMIN_DEFAULT_EMAIL=${{ secrets.PGADMIN_DEFAULT_EMAIL }}
+            PGADMIN_DEFAULT_PASSWORD=${{ secrets.PGADMIN_DEFAULT_PASSWORD }}
+            PGADMIN_PORT=5057
+            ENVEOF
+
+            # ── Step 3: Rebuild containers ────────────────────────────────────
+            docker compose down
+            docker compose up -d --build
+
+            # ── Step 4: Wait for Postgres to be healthy ───────────────────────
+            echo "⏳ Waiting for postgres to be healthy..."
+            timeout=60
+            elapsed=0
+            until docker inspect --format='{{.State.Health.Status}}' bait_postgres 2>/dev/null | grep -q 'healthy'; do
+              if [ $elapsed -ge $timeout ]; then
+                echo "❌ Postgres healthcheck timed out"
+                exit 1
+              fi
+              sleep 3
+              elapsed=$((elapsed + 3))
+            done
+            echo "✅ Postgres is healthy"
+
+            # ── Step 5: Run migrations ────────────────────────────────────────
+            echo "🔄 Running database migrations..."
+            
+            # Try migrate deploy first
+            if docker compose exec -T app npx prisma migrate deploy 2>&1 | tee /tmp/migrate.log; then
+              echo "✅ Migrations applied successfully"
+            else
+              # Check if error is P3005 (non-empty database)
+              if grep -q "P3005" /tmp/migrate.log; then
+                echo "⚠️  Database is not empty - applying baseline strategy"
+                
+                # Get the first migration name
+                FIRST_MIGRATION=$(docker compose exec -T app sh -c 'ls -1 prisma/migrations 2>/dev/null | head -1' | tr -d '\r')
+                
+                if [ -n "$FIRST_MIGRATION" ]; then
+                  echo "📌 Marking migration as applied: $FIRST_MIGRATION"
+                  docker compose exec -T app npx prisma migrate resolve --applied "$FIRST_MIGRATION"
+                  
+                  # Try deploy again
+                  docker compose exec -T app npx prisma migrate deploy
+                  echo "✅ Migrations baselined and applied"
+                else
+                  echo "⚠️  No migrations found - using db push"
+                  docker compose exec -T app npx prisma db push --accept-data-loss
+                fi
+              else
+                echo "❌ Migration failed with unknown error"
+                exit 1
+              fi
+            fi
+
+            # ── Step 6: Run seeders (manual trigger only) ──────────────────────
+            if [ "${{ github.event.inputs.run_seed }}" = "true" ]; then
+              echo "🌱 Running database seeders..."
+              docker compose exec -T app node prisma/seed.js
+              echo "✅ Seeders completed"
+            fi
+
+            echo "✅ Deployment successful"
