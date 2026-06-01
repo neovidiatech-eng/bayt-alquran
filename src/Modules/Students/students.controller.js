@@ -5,7 +5,25 @@ import {
 } from "../../Utils/Response.js";
 import * as db from "../../database/dbService.js";
 import { ensureExists } from "../../database/genericService.js";
-import { decryptText, hash, looksEncrypted } from "../../Utils/Security/index.js";
+import {
+  decryptPassword,
+  decryptText,
+  encryptText,
+  looksEncrypted,
+} from "../../Utils/Security/index.js";
+
+const exposeStudentUserSecrets = async (student) => ({
+  ...student,
+  user: student.user
+    ? {
+        ...student.user,
+        phone: looksEncrypted(student.user.phone)
+          ? await decryptText({ text: student.user.phone })
+          : student.user.phone,
+        password: await decryptPassword({ password: student.user.password }),
+      }
+    : student.user,
+});
 
 export const getAllStudents = asyncHandler(async (req, res, next) => {
   const { search, country, plans, page = 1, limit = 10 } = req.query;
@@ -46,21 +64,7 @@ export const getAllStudents = asyncHandler(async (req, res, next) => {
       },
     });
   const studentsData = await Promise.all(
-    students.map(async (student) => {
-      console.log(student.user.phone);
-
-      const phone = looksEncrypted(student.user.phone)
-        ? await decryptText({ text: student.user.phone })
-        : student.user.phone;
-      console.log(phone);
-      return {
-        ...student,
-        user: {
-          ...student.user,
-          phone: phone,
-        },
-      };
-    }),
+    students.map(exposeStudentUserSecrets),
   );
 
   return successResponse({
@@ -115,7 +119,7 @@ export const createStudent = asyncHandler(async (req, res, next) => {
   if (!checkPlan)
     return errorResponse({ req, next, message: "PLAN_NOT_FOUND", status: 404 });
 
-  const hashedPassword = await hash({ password });
+  const encryptedPassword = encryptText({ text: password });
 
   // Fetch system wallet before the transaction so we can reference its id inside
   const systemWallet = await db.findFirst({
@@ -140,7 +144,7 @@ export const createStudent = asyncHandler(async (req, res, next) => {
         name,
         email,
         phone,
-        password: hashedPassword,
+        password: encryptedPassword,
         code_country: phone_code,
         status: "active",
         confirmAt: new Date(),
@@ -257,7 +261,7 @@ export const getStudentById = asyncHandler(async (req, res, next) => {
     res,
     req,
     message: "FETCH_SUCCESS",
-    data: student,
+    data: await exposeStudentUserSecrets(student),
     status: 200,
   });
 });
@@ -349,7 +353,7 @@ export const updateStudent = asyncHandler(async (req, res, next) => {
     res,
     req,
     message: "UPDATE_SUCCESS",
-    data: updatedStudent,
+    data: await exposeStudentUserSecrets(updatedStudent),
     status: 200,
   });
 });

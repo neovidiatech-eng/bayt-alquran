@@ -46,7 +46,19 @@ export const registeritonSchema = {
 export const loginSchema = {
   body: Joi.object()
     .keys({
-      email: generalFeilds.email.required(),
+      email: Joi.alternatives()
+        .try(
+          generalFeilds.email,
+          Joi.string().pattern(/^(?:\+20|0020|0)?1[0125][0-9]{8}$/),
+          Joi.string().pattern(/^(?:\+966|0)?5[0-9]{8}$/),
+          Joi.string().pattern(/^\+?[0-9]{7,15}$/)
+        )
+        .required()
+        .messages({
+          "alternatives.match": "VALID_EMAIL_OR_PHONE",
+          "any.required": "EMAIL_OR_PHONE_REQUIRED",
+          "string.empty": "EMAIL_OR_PHONE_REQUIRED",
+        }),
       password: generalFeilds.password.required(),
     })
     .required(),

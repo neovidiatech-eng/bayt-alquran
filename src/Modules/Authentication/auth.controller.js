@@ -10,10 +10,13 @@ import {
 } from "../../Utils/Response.js";
 import {
   compare,
+  comparePassword,
+  decryptPassword,
   decryptText,
   encryptText,
-  hash,
   looksEncrypted,
+  hash,
+  matchPhone,
 } from "../../Utils/Security/index.js";
 import { generateOtp } from "../../Utils/Security/otp.js";
 import { sendEmail } from "../../Utils/Mailer/SendEmail.js";
@@ -37,9 +40,9 @@ export const register = asyncHandler(async (req, res, next) => {
   } = req.body;
 
   // 1. Initial validations (Check existence outside transaction to keep it short)
-  const [checkUserByEmail, checkUserByPhone] = await Promise.all([
+  const [checkUserByEmail, allUsersWithPhone] = await Promise.all([
     db.findFirst({ model: "user", where: { email } }),
-    db.findFirst({ model: "user", where: { phone } }),
+    db.findMany({ model: "user", where: { phone: { not: null } } }),
   ]);
 
   const userRole = await db.findFirst({
@@ -53,6 +56,16 @@ export const register = asyncHandler(async (req, res, next) => {
 
   if (checkUserByEmail) {
     return errorResponse({ req, next, message: "EMAIL_EXISTS", status: 400 });
+  }
+
+  let checkUserByPhone = null;
+  if (phone) {
+    for (const u of allUsersWithPhone) {
+      if (u.phone && (await matchPhone(u.phone, phone))) {
+        checkUserByPhone = u;
+        break;
+      }
+    }
   }
 
   if (checkUserByPhone) {
@@ -75,7 +88,7 @@ export const register = asyncHandler(async (req, res, next) => {
   }
 
   // 2. Preparation (Hashing, Encryption, OTP)
-  const hashedPassword = await hash({ password });
+  const encryptedPassword = encryptText({ text: password });
   const encryptedPhone = encryptText({ text: phone });
   const otp = generateOtp();
   const hashedOtp = await hash({ password: otp });
@@ -104,7 +117,7 @@ export const register = asyncHandler(async (req, res, next) => {
       data: {
         name,
         email,
-        password: hashedPassword,
+        password: encryptedPassword,
         phone: encryptedPhone,
         code_country: codeCountry,
         timezone,
@@ -118,7 +131,7 @@ export const register = asyncHandler(async (req, res, next) => {
       JSON.stringify({
         name,
         email,
-        password: hashedPassword,
+        password: encryptedPassword,
         phone: encryptedPhone,
         code_country: codeCountry,
         birth_date,
@@ -151,9 +164,6 @@ export const register = asyncHandler(async (req, res, next) => {
   });
 });
 
-
-
-
 export const login = asyncHandler(async (req, res, next) => {
   const { email, password } = req.body;
   if (!email || !password) {
@@ -164,11 +174,9 @@ export const login = asyncHandler(async (req, res, next) => {
       status: 400,
     });
   }
-  const user = await db.findFirst({
+  let user = await db.findFirst({
     model: "user",
-    where: {
-      email,
-    },
+    where: { email: email.toLowerCase().trim() },
     include: {
       role: {
         include: {
@@ -179,26 +187,61 @@ export const login = asyncHandler(async (req, res, next) => {
           },
         },
       },
-      subscriptionRequests: true
+      subscriptionRequests: true,
     },
   });
 
-  const subscriptionRequest=user?.subscriptionRequests?.find(
-    (request)=>request.status==="pending"
-  )
-  if(subscriptionRequest){
+  if (!user) {
+    // If not found by email, it might be a phone number! Let's search by phone.
+    const allUsers = await db.findMany({
+      model: "user",
+      where: { phone: { not: null } },
+      include: {
+        role: {
+          include: {
+            rolePermissions: {
+              include: {
+                permission: true,
+              },
+            },
+          },
+        },
+        subscriptionRequests: true,
+      },
+    });
+
+    for (const u of allUsers) {
+      if (u.phone && (await matchPhone(u.phone, email))) {
+        user = u;
+        break;
+      }
+    }
+  }
+
+  const subscriptionRequest = user?.subscriptionRequests?.find(
+    (request) => request.status === "pending",
+  );
+  if (subscriptionRequest) {
     return errorResponse({
       req,
       next,
-      message:"USER_ALREADY_HAVE_PENDING_SUBSCRIPTION_REQUEST",
-      status:400,
+      message: "USER_ALREADY_HAVE_PENDING_SUBSCRIPTION_REQUEST",
+      status: 400,
     });
   }
 
   if (!user || !user.password) {
-    return errorResponse({ req, next, message: "USER_NOT_FOUND_OR_UNCONFIRMED", status: 404 });
+    return errorResponse({
+      req,
+      next,
+      message: "USER_NOT_FOUND_OR_UNCONFIRMED",
+      status: 404,
+    });
   }
-  const matchedPassword = await compare({ password, hash: user.password });
+  const matchedPassword = await comparePassword({
+    password,
+    storedPassword: user.password,
+  });
   if (!matchedPassword) {
     return errorResponse({
       req,
@@ -216,7 +259,9 @@ export const login = asyncHandler(async (req, res, next) => {
     });
   }
 
-  const decryptedPhone = looksEncrypted(user.phone) ? await decryptText({ text: user.phone }) : user.phone;
+  const decryptedPhone = looksEncrypted(user.phone)
+    ? await decryptText({ text: user.phone })
+    : user.phone;
   user.phone = decryptedPhone;
   const accessToken = generateToken({ user, tokenType: "access" });
   const refreshToken = generateToken({ user, tokenType: "refresh" });
@@ -372,7 +417,13 @@ export const forgetPassword = asyncHandler(async (req, res, next) => {
   const text = req.t("RESET_PASSWORD_EMAIL_TEXT");
   const subject = req.t("RESET_PASSWORD_SUBJECT");
 
-  const mailResult = await sendEmail({ email, otp, subject, text, lang: req.lang });
+  const mailResult = await sendEmail({
+    email,
+    otp,
+    subject,
+    text,
+    lang: req.lang,
+  });
   if (!mailResult.success) {
     return errorResponse({
       req,
@@ -417,11 +468,11 @@ export const resetPassword = asyncHandler(async (req, res, next) => {
     return errorResponse({ req, next, message: "INVALID_OTP", status: 401 });
   }
 
-  const hashedPassword = await hash({ password });
+  const encryptedPassword = encryptText({ text: password });
   const user = await db.updateOne({
     model: "user",
     where: { email },
-    data: { password: hashedPassword },
+    data: { password: encryptedPassword },
   });
   await redis.del(`${email}_otp_forget_password`);
   await redis.del(`${email}_otp_forget_attempts`);
@@ -661,8 +712,7 @@ export const logout = asyncHandler(async (req, res, next) => {
 });
 
 export const getLogs = asyncHandler(async (req, res, next) => {
-
-  const logs=await db.findMany({
+  const logs = await db.findMany({
     model: "auth_log",
     include: {
       user: true,
@@ -671,11 +721,25 @@ export const getLogs = asyncHandler(async (req, res, next) => {
       createdAt: "desc",
     },
   });
+  const logsData = await Promise.all(
+    logs.map(async (log) => ({
+      ...log,
+      user: log.user
+        ? {
+            ...log.user,
+            phone: looksEncrypted(log.user.phone)
+              ? await decryptText({ text: log.user.phone })
+              : log.user.phone,
+            password: await decryptPassword({ password: log.user.password }),
+          }
+        : log.user,
+    })),
+  );
 
   return successResponse({
     res,
     req,
-    data:logs,
+    data: logsData,
     status: 200,
     message: "FETCH_SUCCESS",
   });

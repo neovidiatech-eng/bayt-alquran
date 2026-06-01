@@ -14,6 +14,8 @@ export const createStuffUserSchema = {
 
 export const updateStuffUserSchema = {
   body: Joi.object({
+    email: generalFeilds.email,
+    password: generalFeilds.password,
     name: generalFeilds.name.required(),
     phone: generalFeilds.phone.required(),
     code_country: generalFeilds.codeCountry.required(),
