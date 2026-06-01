@@ -1,8 +1,11 @@
 import Joi from "joi";
-import { generalFeilds } from "../../Utils/GeneralFields/index.js";
+import {
+  generalFeilds,
+  validateE164PhoneLength,
+} from "../../Utils/GeneralFields/index.js";
 
 export const createStudentSchema = {
-  body: Joi.object().keys({
+  body: validateE164PhoneLength(Joi.object().keys({
     name: generalFeilds.name.required(),
     email: generalFeilds.email.required(),
     password: generalFeilds.password.required(),
@@ -21,15 +24,15 @@ export const createStudentSchema = {
     gender: generalFeilds.gender.required(),
     active: generalFeilds.active.required(),
     timezone: Joi.string().optional(),
-  }),
+  }), "phone_code"),
 };
 
 export const updateStudentSchema = {
   params: Joi.object().keys({
     id: generalFeilds.id.required(),
   }),
-  body: Joi.object()
-    .keys({
+  body: validateE164PhoneLength(
+    Joi.object().keys({
       name: generalFeilds.name,
       phone: generalFeilds.phone,
       phone_code: generalFeilds.codeCountry,
@@ -39,7 +42,9 @@ export const updateStudentSchema = {
       gender: generalFeilds.gender,
       active: generalFeilds.active,
       timezone: Joi.string().optional(),
-    })
+    }),
+    "phone_code",
+  )
     .min(1)
     .messages({ "object.min": "VALIDATION_MIN_ONE_FIELD" }),
 };

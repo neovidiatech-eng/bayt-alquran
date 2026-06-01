@@ -1,5 +1,8 @@
 import joi from "joi";
-import { generalFeilds } from "../../Utils/GeneralFields/index.js";
+import {
+  generalFeilds,
+  validateE164PhoneLength,
+} from "../../Utils/GeneralFields/index.js";
 
 export const getAllParentsSchema = {
   query: joi.object({
@@ -17,7 +20,7 @@ export const getParentSchema = {
 };
 
 export const createParentSchema = {
-  body: joi.object({
+  body: validateE164PhoneLength(joi.object({
     name: generalFeilds.name.required(),
     email: generalFeilds.email.required(),
     password: generalFeilds.password.required(),
@@ -25,14 +28,14 @@ export const createParentSchema = {
     code_country: generalFeilds.codeCountry.required(),
     active: joi.boolean().optional(),
     students: joi.array().items(generalFeilds.id).optional(),
-  }).required(),
+  }), "code_country").required(),
 };
 
 export const updateParentSchema = {
   params: joi.object({
     id: generalFeilds.id.required(),
   }),
-  body: joi.object({
+  body: validateE164PhoneLength(joi.object({
     name: generalFeilds.name,
     email: generalFeilds.email,
     password: generalFeilds.password,
@@ -40,7 +43,7 @@ export const updateParentSchema = {
     code_country: generalFeilds.codeCountry,
     active: joi.boolean().optional(),
     students: joi.array().items(generalFeilds.id).optional(),
-  }).required(),
+  }), "code_country").required(),
 };
 
 export const deleteParentSchema = {
@@ -54,4 +57,3 @@ export const studentIdSchema = {
     studentId: generalFeilds.id.required(),
   }),
 };
-

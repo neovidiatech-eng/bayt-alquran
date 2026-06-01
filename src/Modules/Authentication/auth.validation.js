@@ -1,9 +1,12 @@
 import Joi from "joi";
-import { generalFeilds } from "../../Utils/GeneralFields/index.js";
+import {
+  generalFeilds,
+  validateE164PhoneLength,
+} from "../../Utils/GeneralFields/index.js";
 
 export const registeritonSchema = {
-  body: Joi.object()
-    .keys({
+  body: validateE164PhoneLength(
+    Joi.object().keys({
       name: generalFeilds.name.required(),
       email: generalFeilds.email.required(),
       password: generalFeilds.password.required(),
@@ -11,27 +14,7 @@ export const registeritonSchema = {
       birth_date: generalFeilds.birth_date.required(),
       gender: generalFeilds.gender.required(),
       country: generalFeilds.country.required(),
-      phone: Joi.when("codeCountry", {
-        is: "+20",
-        then: Joi.string()
-          .pattern(/^(?:\+20|0020|0)?1[0125][0-9]{8}$/)
-          .required()
-          .messages({
-            "string.pattern.base": "VALID_EGYPTIAN_PHONE",
-          }),
-        otherwise: Joi.when("codeCountry", {
-          is: "+966",
-          then: Joi.string()
-            .pattern(/^(?:\+966|0)?5[0-9]{8}$/)
-            .required()
-            .messages({
-              "string.pattern.base": "VALID_SAUDI_PHONE",
-            }),
-          otherwise: Joi.string().required().messages({
-            "string.pattern.base": "VALID_PHONE",
-          }),
-        }),
-      }),
+      phone: generalFeilds.phone.required(),
       plan_id: generalFeilds.id
         .messages({
           "string.pattern.base": "VALID_PLAN_ID",
@@ -40,8 +23,8 @@ export const registeritonSchema = {
         })
         .required(),
       timezone: Joi.string().optional(),
-    })
-    .required(),
+    }),
+  ).required(),
 };
 export const loginSchema = {
   body: Joi.object()
@@ -49,9 +32,7 @@ export const loginSchema = {
       email: Joi.alternatives()
         .try(
           generalFeilds.email,
-          Joi.string().pattern(/^(?:\+20|0020|0)?1[0125][0-9]{8}$/),
-          Joi.string().pattern(/^(?:\+966|0)?5[0-9]{8}$/),
-          Joi.string().pattern(/^\+?[0-9]{7,15}$/)
+          Joi.string().pattern(/^\+?[0-9]{4,15}$/)
         )
         .required()
         .messages({
