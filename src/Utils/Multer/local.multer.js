@@ -19,7 +19,7 @@ export const localMulterUpload = ({ customPath = "general", validation = [] } = 
           if (validation.includes(file.mimetype)) {
                return cb(null, true)
           }
-          return cb(new Error("inVaild File Format"), false)
+          return cb(new Error("INVALID_FILE_FORMAT"), false)
 
      }
 

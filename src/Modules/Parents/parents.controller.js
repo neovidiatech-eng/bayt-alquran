@@ -226,7 +226,9 @@ export const createParent = asyncHandler(async (req, res, next) => {
         });
 
         if (!student) {
-          throw new Error(`STUDENT_NOT_FOUND: ${studentId}`);
+          const error = new Error("STUDENT_NOT_FOUND_WITH_ID");
+          error.messageParams = { id: studentId };
+          throw error;
         }
 
         await tx.create({
@@ -376,7 +378,9 @@ export const updateParent = asyncHandler(async (req, res, next) => {
           });
 
           if (!student) {
-            throw new Error(`STUDENT_NOT_FOUND: ${studentId}`);
+            const error = new Error("STUDENT_NOT_FOUND_WITH_ID");
+            error.messageParams = { id: studentId };
+            throw error;
           }
 
           await tx.create({

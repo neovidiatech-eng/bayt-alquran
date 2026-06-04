@@ -4,6 +4,9 @@ import subscriptionsRequestsRouter from "./SubscriptionRequests/subscriptionRequ
 import { authentication } from "../../Middlewares/Authentication.js";
 import { authorizeResource } from "../../Middlewares/AuthorizationMiddleware.js";
 import * as sub from "./subscription.controller.js";
+import * as schema from "./subsscription.validation.js";
+import { validation } from "../../Middlewares/Validation.js";
+
 
 const router = Router();
 router.use("/plans", plansRouter);
@@ -13,6 +16,14 @@ router.get(
   authentication(),
   authorizeResource("subscriptions"),
   sub.getallSubscriptions,
+);
+
+router.post(
+  "/renew/:studentId",
+  authentication(),
+  validation(schema.renewSubscription),
+  authorizeResource("subscriptions"),
+  sub.renewSubscription,
 );
 
 export default router;

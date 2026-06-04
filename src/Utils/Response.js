@@ -119,7 +119,7 @@ export const globalErrorHandling = (err, req, res, next) => {
     : getMessage("INTERNAL_SERVER_ERROR", lang);
 
   return res.status(status).json({
-    message: "error",
+    message: getMessage("ERROR", lang),
     status,
     lang: getDir(lang),
     error: errorText,
@@ -137,7 +137,7 @@ export const errorResponse = ({
   req,
   next,
   status = 400,
-  message = "error",
+  message = "ERROR",
   messageParams = {},
   details = null,
 }) => {
@@ -154,7 +154,7 @@ export const successResponse = ({
   req,
   status = 200,
   data,
-  message = "success",
+  message = "SUCCESS",
   messageParams = {},
 }) => {
   const lang = req?.lang || "en";

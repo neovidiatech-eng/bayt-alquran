@@ -1,6 +1,7 @@
+import { log } from "node:console";
 import { findMany } from "../../database/dbService.js";
 import * as db from "../../database/dbService.js";
-import { asyncHandler } from "../../Utils/Response.js";
+import { asyncHandler, errorResponse, successResponse } from "../../Utils/Response.js";
 import { decryptText, looksEncrypted } from "../../Utils/Security/index.js";
 
 export const getallSubscriptions = asyncHandler(async (req, res, next) => {
@@ -66,5 +67,115 @@ export const getallSubscriptions = asyncHandler(async (req, res, next) => {
     }),
   );
 
-  return res.status(200).json({ success: true, data: subscriptionsData });
+  return successResponse({
+    res,
+    req,
+    data: subscriptionsData,
+    message: "SUBSCRIPTIONS_FETCHED",
+    status: 200,
+  });
+});
+
+export const renewSubscription = asyncHandler(async (req, res, next) => {
+  const { studentId } = req.params;
+  const { plan_id } = req.body;
+
+  const student = await db.findOne({
+    model: "student",
+    where: { id: studentId },
+    include: {
+      user: true,
+    },
+  });
+  if (!student) {
+    return errorResponse({ req, next, status: 404, message: "STUDENT_NOT_FOUND" });
+  }
+
+    if (student?.sessions_remaining > 0) {
+    return next(new Error("STUDENT_HAS_REMAINING_SESSIONS"));
+  }
+
+  const plan = await db.findOne({
+    model: "Plans",
+    where: { id: plan_id },
+    include: {
+      currency: true,
+    },
+  });
+
+  if (!plan) {
+    return errorResponse({ req, next, status: 404, message: "PLAN_NOT_FOUND" });
+  }
+
+  const studentSub = await db.findFirst({
+    model: "subscription",
+    where: { userId: student.userId },
+  });
+
+  console.log(studentSub);
+
+  if (!studentSub) {
+    return errorResponse({ req, next, status: 404, message: "SUBSCRIPTION_NOT_FOUND" });
+  }
+
+  const { newSubscription, updatedStudent } = await db.transaction(
+    async (tx) => {
+      const newSubscription = await db.create({
+        model: "subscription",
+        data: {
+          user: { connect: { id: student.user_id } },
+          plan: { connect: { id: plan.id } },
+          currency: { connect: { id: plan.currencyId } },
+          amount: parseFloat(plan.price),
+          startDate: new Date(),
+          status: "active",
+          paidAt: new Date(),
+        },
+      });
+      console.log("newSubscription", plan);
+      const updatedStudent = await db.updateOne({
+        model: "student",
+        where: { id: studentId },
+        data: {
+          status: "active",
+          sessions: plan.sessionsCount,
+          sessions_remaining: plan.sessionsCount,
+        },
+      });
+      const walletSystem = await db.findFirst({
+        model: "wallet",
+        where: { type: "system" },
+      });
+       const updateWalletSystem = await db.updateOne({
+        model: "wallet",
+        where: { id: walletSystem.id },
+        data: {
+          balance: { increment: parseFloat(plan.price) },
+        },
+      });
+      const transaction = await db.create({
+        model: "transaction",
+        data: {
+          type: "subscription",
+          amount: parseFloat(plan.price),
+          walletId: updateWalletSystem.id,
+          type: "subscription",
+          amount: parseFloat(plan.price),
+          status: "completed",
+          reason: `Subscription renewed for student ${student.user.name} for plan ${plan.name_en}`,
+          createdAt: new Date(),
+          subscriptionId: newSubscription.id,
+        },
+      });
+     
+      return { newSubscription, updatedStudent };
+    },
+  );
+  return successResponse({
+    res,
+    req,
+    data: { newSubscription, updatedStudent },
+    message: "SUBSCRIPTION_RENEWED",
+    status: 200,
+  });
 });
