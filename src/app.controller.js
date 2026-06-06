@@ -41,6 +41,8 @@ const bootstrap = async () => {
         "http://localhost:5500",
         "http://127.0.0.1:5500",
         "https://neo-vidia.vercel.app",
+        "https://dashboard.bayt-alquran.net",
+        "https://house-of-quran-lms.vercel.app",
       ];
 
   app.use(
@@ -75,7 +77,7 @@ const bootstrap = async () => {
   // Initialize Socket.IO
   const io = new Server(apphttp, {
     cors: {
-      origin: "*",
+      origin: allowedOrigins,
       credentials: true,
     },
     allowEIO3: true,
