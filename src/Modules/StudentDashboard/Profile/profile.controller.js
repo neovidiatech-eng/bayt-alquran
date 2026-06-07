@@ -111,7 +111,7 @@ export const getDashboardStats = asyncHandler(async (req, res, next) => {
     });
   }
 
-  const tz = req.user.timezone || "Africa/Cairo";
+  const tz = req.timezone;
   const localNow = dayjs().tz(tz);
   const startOfDay = localNow.startOf("day").utc().toDate();
   const endOfDay = localNow.endOf("day").utc().toDate();

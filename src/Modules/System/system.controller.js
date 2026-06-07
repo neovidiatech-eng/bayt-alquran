@@ -5,6 +5,7 @@ import {
 } from "../../Utils/Response.js";
 import * as db from "../../database/dbService.js";
 import { getNowUTC } from "../../Utils/Date/time.js";
+import { formatDateTimeForTimezone } from "../../Utils/Timezone/timezone.js";
 import { rbacCache } from "../../Utils/RBAC/cache.js";
 
 export const getAllRoles = asyncHandler(async (req, res, next) => {
@@ -365,6 +366,8 @@ export const getDashboard = asyncHandler(async (req, res, next) => {
         title: s.title,
         subject: s.subject?.name_en || "Subject",
         time: s.start_time,
+        display_start_time: formatDateTimeForTimezone(s.start_time, req.timezone),
+        display_timezone: req.timezone,
         teacher: s.teacher?.user?.name || "Teacher",
         student: s.student?.user?.name || "Student",
       })),

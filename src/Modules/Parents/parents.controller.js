@@ -1,4 +1,5 @@
 import { asyncHandler, successResponse, errorResponse } from "../../Utils/Response.js";
+import { formatSchedules } from "../../Utils/Date/time.js";
 import * as db from "../../database/dbService.js";
 import { ensureExists } from "../../database/genericService.js";
 import { decryptPassword, encryptText, decryptText, looksEncrypted } from "../../Utils/Security/index.js";
@@ -590,7 +591,7 @@ export const getStudentSessions = asyncHandler(async (req, res, next) => {
     req,
     res,
     status: 200,
-    data: sessions,
+    data: formatSchedules(sessions, req.timezone),
   });
 });
 

@@ -27,6 +27,7 @@ import {
 } from "../../Utils/Date/time.js";
 import dayjs from "dayjs";
 import { getSettingsData } from "../Settings/settings.controller.js";
+import { getRequestTimezoneMetadata } from "../../Utils/Timezone/timezone.js";
 
 /* ------------------------------------------------------------------ */
 /*            Admin creates multiple sessions in one request            */
@@ -57,8 +58,8 @@ export const getAllSchedules = asyncHandler(async (req, res, next) => {
   // 📅 فلترة بالتاريخ
   if (start_date && end_date) {
     where.start_time = {
-      gte: normalizeDate(start_date),
-      lte: normalizeDate(end_date),
+      gte: normalizeDate(start_date, req.timezone),
+      lte: normalizeDate(end_date, req.timezone),
     };
   }
 
@@ -104,7 +105,11 @@ export const getAllSchedules = asyncHandler(async (req, res, next) => {
   return successResponse({
     res,
     req,
-    data: { schedule: formattedSchedules, pagination },
+    data: {
+      schedule: formattedSchedules,
+      pagination,
+      ...getRequestTimezoneMetadata(req),
+    },
     status: 200,
     message: "FETCH_SUCCESS",
   });
@@ -416,7 +421,7 @@ export const createRecurringSchedule = asyncHandler(async (req, res, next) => {
       end_time,
       subjectId: subject_id,
       is_recurring: true,
-      day_of_week: date.toLocaleDateString("en-US", { weekday: "long" }),
+      day_of_week: dayjs.utc(date).tz(req.timezone).format("dddd"),
       parent_recurring_id: parentRecurringId,
     });
 
@@ -757,12 +762,11 @@ export const updateSchedule = asyncHandler(async (req, res, next) => {
     startTime = start_time
       ? normalizeDate(start_time, req.timezone)
       : startTime;
-    endTime = getEndTime(
+    endTime = getEndTime({
       startTime,
-      sessionType,
-      schedule.student.plan?.sessionTime,
-      req.timezone,
-    );
+      duration: schedule.student.plan?.sessionTime,
+      tz: req.timezone,
+    });
 
     updateData.start_time = startTime;
     updateData.end_time = endTime;

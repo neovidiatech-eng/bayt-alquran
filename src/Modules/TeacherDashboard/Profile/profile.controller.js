@@ -5,6 +5,7 @@ import {
   successResponse,
 } from "../../../Utils/Response.js";
 import { decryptText, looksEncrypted } from "../../../Utils/Security/index.js";
+import { formatDateTimeForTimezone } from "../../../Utils/Timezone/timezone.js";
 import * as db from "../../../database/dbService.js";
 
 export const getProfile = asyncHandler(async (req, res, next) => {
@@ -105,6 +106,9 @@ export const getProfile = asyncHandler(async (req, res, next) => {
       status: s.status,
       startTime: s.start_time,
       endTime: s.end_time,
+      display_start_time: formatDateTimeForTimezone(s.start_time, req.timezone),
+      display_end_time: formatDateTimeForTimezone(s.end_time, req.timezone),
+      display_timezone: req.timezone,
       isRecurring: s.is_recurring,
       link: s.link,
       notes: s.notes,
@@ -242,6 +246,9 @@ export const getDashboardStats = asyncHandler(async (req, res, next) => {
         status: s.status,
         startTime: s.start_time,
         endTime: s.end_time,
+        display_start_time: formatDateTimeForTimezone(s.start_time, req.timezone),
+        display_end_time: formatDateTimeForTimezone(s.end_time, req.timezone),
+        display_timezone: req.timezone,
         isRecurring: s.is_recurring,
         link: s.link,
         notes: s.notes,
