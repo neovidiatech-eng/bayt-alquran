@@ -18,6 +18,13 @@ router.get(
   studentController.getAllStudents,
 );
 
+router.get(
+  "/stats",
+  authentication(),
+  authorizeResource("users"),
+  studentController.getStudentStats,
+);
+
 router.post(
   "/create",
   authentication(),
