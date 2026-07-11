@@ -18,6 +18,11 @@ services:
       retries: 5
     networks:
       - bait_network
+    deploy:
+     resources:
+      limits:
+        cpus: '1'
+        memory: 512M
 
   pgadmin:
     image: dpage/pgadmin4:latest
@@ -35,6 +40,11 @@ services:
         condition: service_healthy
     networks:
       - bait_network
+    deploy:
+     resources:
+      limits:
+        cpus: '1'
+        memory: 512M  
 
   redis:
     image: redis:7-alpine
@@ -46,6 +56,11 @@ services:
       - redis_data:/data
     networks:
       - bait_network
+    deploy:
+     resources:
+      limits:
+        cpus: '1'
+        memory: 512M  
 
   app:
     build:
@@ -78,13 +93,17 @@ services:
         condition: service_started
     networks:
       - bait_network
-      - npm_network
+    deploy:
+     resources:
+      limits:
+        cpus: '1'
+        memory: 1G  
+    
 
 networks:
   bait_network:
     driver: bridge
-  npm_network:
-    external: true
+
 
 volumes:
   pgdata:

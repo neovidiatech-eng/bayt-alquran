@@ -8,7 +8,6 @@ import {
   googleSignupSchema,
   loginSchema,
   registeritonSchema,
-  
   resendOtpSchema,
   resetPasswordSchema,
   verifiyCodeSchema,
@@ -16,43 +15,24 @@ import {
 import { authentication } from "../../Middlewares/Authentication.js";
 import { authorize, authorizeResource } from "../../Middlewares/AuthorizationMiddleware.js";
 import { PERMISSIONS_V2 } from "../../Constants/permissions.constants.js";
+import { authRateLimiter, otpRateLimiter } from "../../Middlewares/RateLimiter.js";
 const router = Router();
 
-router.post("/sign-up", validation(registeritonSchema), auth.register);
+// ── Auth rate-limited routes (20 req / 15 min per IP) ────────────────────────
+router.post("/sign-up",      authRateLimiter, validation(registeritonSchema), auth.register);
+router.post("/sign-in",      authRateLimiter, validation(loginSchema),        auth.login);
+router.post("/google-signup",authRateLimiter, validation(googleSignupSchema),  auth.googleSignUp);
+router.post("/google-login", authRateLimiter, validation(googleLoginSchema),   auth.googlelogin);
 
-router.post("/sign-in", validation(loginSchema), auth.login); //done
+// ── Unauthenticated session management ───────────────────────────────────────
+router.post("/refresh", cookieParser(), auth.refresh);
+router.post("/logout",  cookieParser(), auth.logout);
 
-router.post("/refresh", cookieParser(), auth.refresh); //done
-
-router.post(
-  "/google-signup",
-  validation(googleSignupSchema),
-  auth.googleSignUp,
-);
-
-router.post("/google-login", validation(googleLoginSchema), auth.googlelogin); //done
-
-router.post("/logout", cookieParser(), auth.logout); //done
-
-router.post(
-  "/verify-account",
-  validation(verifiyCodeSchema),
-  auth.verifyAccount,
-); //done
-
-router.post("/resend-otp", validation(resendOtpSchema), auth.resendOtp);
-router.post(
-  "/forget-password",
-  validation(forgetPasswordSchema),
-  auth.forgetPassword,
-);
-
-router.patch(
-  "/reset-password",
-  validation(resetPasswordSchema),
-  auth.resetPassword,
-
-);
+// ── OTP / password routes (5 req / 1 hr per IP) ──────────────────────────────
+router.post("/verify-account",  otpRateLimiter, validation(verifiyCodeSchema),    auth.verifyAccount);
+router.post("/resend-otp",      otpRateLimiter, validation(resendOtpSchema),      auth.resendOtp);
+router.post("/forget-password", otpRateLimiter, validation(forgetPasswordSchema), auth.forgetPassword);
+router.patch("/reset-password", otpRateLimiter, validation(resetPasswordSchema),  auth.resetPassword);
 
 router.get("/getLogs",authentication(),authorize(PERMISSIONS_V2.DASHBOARD.READ), auth.getLogs);
 

@@ -18,6 +18,7 @@ import { Server } from "socket.io";
 import { init_io } from "./Utils/Socket/index.js";
 import { socketAuthentication } from "./Middlewares/SocketAuth.js";
 import { createAdapter } from "@socket.io/redis-adapter";
+import { globalRateLimiter, initRateLimiters } from "./Middlewares/RateLimiter.js";
 
 const bootstrap = async () => {
   const app = express();
@@ -45,6 +46,9 @@ const bootstrap = async () => {
         "https://house-of-quran-lms.vercel.app",
       ];
 
+  // Trust the first proxy hop (Nginx reverse proxy)
+  app.set("trust proxy", 1);
+
   app.use(
     cors({
       origin: (origin, callback) => {
@@ -63,6 +67,12 @@ const bootstrap = async () => {
   app.use(langMiddleware); // Detect language for all requests
   app.use(timezoneMiddleware); // Detect timezone for all requests
   await redisConnection();
+
+  // Initialise rate limiters now that Redis is connected
+  initRateLimiters();
+
+  // Global rate limiter – applied before all routes
+  app.use(globalRateLimiter);
 
   // Root Router
   app.use(rootRouter);
