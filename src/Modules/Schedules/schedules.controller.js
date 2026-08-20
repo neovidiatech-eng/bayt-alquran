@@ -97,6 +97,7 @@ export const getAllSchedules = asyncHandler(async (req, res, next) => {
           },
         },
         subject: true,
+        scheduleLogs: true,
       },
     });
 
