@@ -1208,6 +1208,28 @@ export const submitReview = asyncHandler(async (req, res, next) => {
       });
     }
 
+    review = await tx.create({
+      model: "Review",
+      data: {
+        scheduleId: id,
+        reviewerId: user.id,
+        revieweeId,
+        rating: parseInt(rating, 10),
+        comment,
+        role,
+      },
+    });
+
+    const studentReview = isStudent
+      ? review
+      : await tx.findFirst({
+          model: "Review",
+          where: {
+            scheduleId: id,
+            reviewerId: session.student.user.id,
+          },
+        });
+
     if (session.status === "ongoing") {
       if (!teacherActuallyAttended) {
         // Teacher absent => refund student
@@ -1226,8 +1248,8 @@ export const submitReview = asyncHandler(async (req, res, next) => {
             status: "missed",
           },
         });
-      } else {
-        // Teacher attended => calculate payout
+      } else if (studentReview) {
+        // Teacher attended AND student review exists => calculate payout and complete session
         const sessionDuration =
           (session.end_time - session.start_time) / (60 * 1000 * 60);
 
@@ -1294,18 +1316,6 @@ export const submitReview = asyncHandler(async (req, res, next) => {
         }
       }
     }
-
-    review = await tx.create({
-      model: "Review",
-      data: {
-        scheduleId: id,
-        reviewerId: user.id,
-        revieweeId,
-        rating: parseInt(rating, 10),
-        comment,
-        role,
-      },
-    });
   });
 
   await updateAverageRating(revieweeId);
@@ -1350,19 +1360,14 @@ async function finalizeSession(scheduleId, t) {
   const log = session.scheduleLogs[0];
   if (!log) return;
 
-  let newStatus = "completed";
   if (!log.joinTime_student && !log.joinTime_teacher) {
-    newStatus = "missed";
-  }
+    await db.updateOne({
+      model: "schedule",
+      where: { id: scheduleId },
+      data: { status: "missed" },
+    });
 
-  await db.updateOne({
-    model: "schedule",
-    where: { id: scheduleId },
-    data: { status: newStatus },
-  });
-
-  // Notify if missed
-  if (newStatus === "missed") {
+    // Notify if missed
     await db.create({
       model: "notification",
       data: {
