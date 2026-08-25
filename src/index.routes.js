@@ -23,6 +23,7 @@ import withdrawalsRouter from "./Modules/Withdrawals/withdrawals.routes.js";
 import chatRouter from "./Modules/chat/chat.routes.js";
 import coursesRouter from "./Modules/courses/courses.routes.js";
 import parentsRouter from "./Modules/Parents/parents.routes.js";
+import feedbackRouter from "./Modules/feedback/feedback.routes.js";
 
 const rootRouter = Router();
 
@@ -47,6 +48,7 @@ rootRouter.use("/withdrawals", withdrawalsRouter);
 rootRouter.use("/chat", chatRouter);
 rootRouter.use("/courses", coursesRouter);
 rootRouter.use("/parent", parentsRouter);
+rootRouter.use("/feedback", feedbackRouter);
 
 // Static files
 rootRouter.use("/uploads", express.static(path.resolve("./uploads")));

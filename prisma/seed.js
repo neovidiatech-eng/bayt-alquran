@@ -17,6 +17,7 @@ import { seedExpenses } from "./seeders/expenses.seeder.js";
 import { seedSubscriptions } from "./seeders/subscriptions.seeder.js";
 import { seedSystemWallet } from "./seeders/systemWallet.seeder.js";
 import { seedSettings } from "./seeders/settings.seeder.js";
+import { seedReviews } from "./seeders/reviews.seeder.js";
 
 dotenv.config();
 
@@ -38,6 +39,7 @@ async function main() {
   await seedStudents();
   await seedSubscriptionRequests();
   await seedSchedules();
+  await seedReviews();
   await seedExpenses();
   await seedSystemWallet();
   await seedSettings();

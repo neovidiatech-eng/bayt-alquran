@@ -19,6 +19,7 @@
     "seed:subscription-requests": "node prisma/seeders/subscriptionRequests.seeder.js",
     "seed:expenses": "node prisma/seeders/expenses.seeder.js",
     "seed:system-wallet": "node prisma/seeders/systemWallet.seeder.js",
+    "seed:reviews": "node prisma/seeders/reviews.seeder.js",
     "seed:all": "npx prisma db seed"
   },
   "keywords": [],

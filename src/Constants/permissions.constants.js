@@ -170,4 +170,9 @@ export const PERMISSIONS_V2 = {
     UPDATE: "subjects:update",
     DELETE: "subjects:delete",
   },
+
+  // Feedback Management
+  FEEDBACK: {
+    READ: "feedback:read",
+  },
 };
