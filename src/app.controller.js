@@ -19,10 +19,14 @@ import { init_io } from "./Utils/Socket/index.js";
 import { socketAuthentication } from "./Middlewares/SocketAuth.js";
 import { createAdapter } from "@socket.io/redis-adapter";
 import { globalRateLimiter, initRateLimiters } from "./Middlewares/RateLimiter.js";
+import { startCronJobs } from "./Utils/CronJobs/index.js";
 
 const bootstrap = async () => {
   const app = express();
   const port = process.env.PORT || 3007;
+
+  // Initialize cron jobs
+  startCronJobs();
 
   // ── ENV DEBUG DUMP (remove after confirming env vars are correct) ──
 

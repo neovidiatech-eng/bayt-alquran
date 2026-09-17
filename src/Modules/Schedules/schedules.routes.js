@@ -25,6 +25,12 @@ router.post(
   validation(schema.createRecurringSchedule),
   scheduleController.createRecurringSchedule,
 );
+router.post(
+  "/auto-resolve",
+  authentication(),
+  authorizeResource("sessions"),
+  scheduleController.autoResolveExpiredSessionsController,
+);
 
 router.delete(
   "/:id",

@@ -28,6 +28,7 @@ import {
 import dayjs from "dayjs";
 import { getSettingsData } from "../Settings/settings.controller.js";
 import { getRequestTimezoneMetadata } from "../../Utils/Timezone/timezone.js";
+import { autoResolveExpiredSessions } from "./schedules.service.js";
 
 /* ------------------------------------------------------------------ */
 /*            Admin creates multiple sessions in one request            */
@@ -1419,3 +1420,18 @@ async function updateAverageRating(userId) {
     }
   }
 }
+
+/* ------------------------------------------------------------------ */
+/*            Auto-resolve sessions expired by 2+ days                  */
+/* ------------------------------------------------------------------ */
+export const autoResolveExpiredSessionsController = asyncHandler(async (req, res, next) => {
+  const result = await autoResolveExpiredSessions();
+  return successResponse({
+    res,
+    req,
+    status: 200,
+    message: "AUTO_RESOLVE_SUCCESS",
+    data: result,
+  });
+});
+
