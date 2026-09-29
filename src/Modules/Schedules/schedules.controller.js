@@ -28,7 +28,12 @@ import {
 import dayjs from "dayjs";
 import { getSettingsData } from "../Settings/settings.controller.js";
 import { getRequestTimezoneMetadata } from "../../Utils/Timezone/timezone.js";
-import { autoResolveExpiredSessions } from "./schedules.service.js";
+import {
+  autoResolveExpiredSessions,
+  resolveSingleSession,
+  syncAllSessionStatuses,
+  getScheduleLog,
+} from "./schedules.service.js";
 
 /* ------------------------------------------------------------------ */
 /*            Admin creates multiple sessions in one request            */
@@ -1132,7 +1137,7 @@ export const submitReview = asyncHandler(async (req, res, next) => {
     });
   }
 
-  let log = session.scheduleLogs?.[0];
+  let log = getScheduleLog(session);
 
   if (!log) {
     log = await db.upsertOne({
@@ -1345,42 +1350,7 @@ export const submitReview = asyncHandler(async (req, res, next) => {
 /* ------------------------------------------------------------------ */
 
 async function finalizeSession(scheduleId, t) {
-  const session = await db.findOne({
-    model: "schedule",
-    where: { id: scheduleId },
-    include: {
-      scheduleLogs: true,
-      student: true,
-      teacher: { include: { user: true } },
-    },
-  });
-
-  if (!session || session.status === "completed" || session.status === "missed")
-    return;
-
-  const log = session.scheduleLogs[0];
-  if (!log) return;
-
-  if (!log.joinTime_student && !log.joinTime_teacher) {
-    await db.updateOne({
-      model: "schedule",
-      where: { id: scheduleId },
-      data: { status: "missed" },
-    });
-
-    // Notify if missed
-    await db.create({
-      model: "notification",
-      data: {
-        userId: session.student.user_id,
-        title: t ? t("NOTIFICATION_SESSION_MISSED_TITLE") : "Session Missed",
-        message: t
-          ? t("NOTIFICATION_SESSION_MISSED_MSG", { title: session.title })
-          : `The session ${session.title} was marked as missed.`,
-        type: "session_missed",
-      },
-    });
-  }
+  return await resolveSingleSession(scheduleId, { t });
 }
 
 async function updateAverageRating(userId) {
@@ -1437,56 +1407,13 @@ export const autoResolveExpiredSessionsController = asyncHandler(async (req, res
 
 
 export const syncSessionStatuses = asyncHandler(async (req, res, next) => {
-  const now = new Date();
-
-  const sessions = await db.findMany({
-    model: "schedule",
-    where: {
-      status: { not: "cancelled" },
-    },
-    include: {
-      scheduleLogs: true,
-      student: { include: { user: true } },
-      groupStudents: { include: { student: { include: { user: true } } } },
-      teacher: { include: { user: true } },
-    },
-  });
-
-  let updatedCount = 0;
-
-  for (const session of sessions) {
-    const isPast = new Date(session.end_time) <= now;
-    const isCurrent =
-      new Date(session.start_time) <= now && new Date(session.end_time) > now;
-
-    if (isPast) {
-      if (session.status !== "completed" && session.status !== "missed") {
-        await finalizeSession(session.id, req.t);
-        updatedCount++;
-      }
-    } else if (isCurrent) {
-      if (session.status === "scheduled" || session.status === "planned") {
-        const log = Array.isArray(session.scheduleLogs)
-          ? session.scheduleLogs[0]
-          : session.scheduleLogs;
-
-        if (log?.joinTime_teacher || log?.joinTime_student) {
-          await db.updateOne({
-            model: "schedule",
-            where: { id: session.id },
-            data: { status: "ongoing" },
-          });
-          updatedCount++;
-        }
-      }
-    }
-  }
+  const result = await syncAllSessionStatuses({ t: req.t });
 
   return successResponse({
     res,
     req,
     status: 200,
     message: "STATUSES_SYNCED_SUCCESSFULLY",
-    data: { processed: sessions.length, updated: updatedCount },
+    data: result,
   });
 });
