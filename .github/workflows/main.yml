@@ -67,7 +67,7 @@ jobs:
           script: |
             set -e
 
-            cd /root/backend/bait
+            cd /backend/bait
 
             # ── Step 1: Pull latest code ──────────────────────────────────────
             git pull origin main
