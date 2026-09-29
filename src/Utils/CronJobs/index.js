@@ -29,7 +29,7 @@ const deleteSoftDeletedMessages = () => {
 
 const scheduleExpiredSessionsResolution = () => {
      // Runs every hour — auto resolves sessions expired by 2+ days
-     cron.schedule("0 * * 0 0", async () => {
+     cron.schedule("0 3 */2 * *", async () => {
           try {
                console.log("[Cron] Auto-resolving sessions expired by 2+ days...");
                const result = await autoResolveExpiredSessions();
