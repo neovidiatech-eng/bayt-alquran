@@ -26,10 +26,10 @@ router.post(
   scheduleController.createRecurringSchedule,
 );
 router.post(
-  "/auto-resolve",
+  "/sync-statuses",
   authentication(),
   authorizeResource("sessions"),
-  scheduleController.autoResolveExpiredSessionsController,
+  scheduleController.syncSessionStatuses,
 );
 
 router.delete(

@@ -1435,3 +1435,58 @@ export const autoResolveExpiredSessionsController = asyncHandler(async (req, res
   });
 });
 
+
+export const syncSessionStatuses = asyncHandler(async (req, res, next) => {
+  const now = new Date();
+
+  const sessions = await db.findMany({
+    model: "schedule",
+    where: {
+      status: { not: "cancelled" },
+    },
+    include: {
+      scheduleLogs: true,
+      student: { include: { user: true } },
+      groupStudents: { include: { student: { include: { user: true } } } },
+      teacher: { include: { user: true } },
+    },
+  });
+
+  let updatedCount = 0;
+
+  for (const session of sessions) {
+    const isPast = new Date(session.end_time) <= now;
+    const isCurrent =
+      new Date(session.start_time) <= now && new Date(session.end_time) > now;
+
+    if (isPast) {
+      if (session.status !== "completed" && session.status !== "missed") {
+        await finalizeSession(session.id, req.t);
+        updatedCount++;
+      }
+    } else if (isCurrent) {
+      if (session.status === "scheduled" || session.status === "planned") {
+        const log = Array.isArray(session.scheduleLogs)
+          ? session.scheduleLogs[0]
+          : session.scheduleLogs;
+
+        if (log?.joinTime_teacher || log?.joinTime_student) {
+          await db.updateOne({
+            model: "schedule",
+            where: { id: session.id },
+            data: { status: "ongoing" },
+          });
+          updatedCount++;
+        }
+      }
+    }
+  }
+
+  return successResponse({
+    res,
+    req,
+    status: 200,
+    message: "STATUSES_SYNCED_SUCCESSFULLY",
+    data: { processed: sessions.length, updated: updatedCount },
+  });
+});
