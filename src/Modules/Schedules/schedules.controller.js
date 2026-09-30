@@ -224,9 +224,9 @@ export const createSchedule = asyncHandler(async (req, res, next) => {
         studentId,
         teacherId,
         title,
-        description,
+        description: description || "",
         link: teacher?.meeting_link ? teacher.meeting_link : link,
-        notes,
+        notes: notes || "",
         subjectId: subject_id,
         start_time: startTime,
         end_time: endTime,
@@ -421,9 +421,9 @@ export const createRecurringSchedule = asyncHandler(async (req, res, next) => {
       studentId,
       teacherId,
       title,
-      description,
+      description: description || "",
       link: teacher?.meeting_link ? teacher.meeting_link : link,
-      notes,
+      notes: notes || "",
       start_time,
       end_time,
       subjectId: subject_id,
@@ -1394,17 +1394,18 @@ async function updateAverageRating(userId) {
 /* ------------------------------------------------------------------ */
 /*            Auto-resolve sessions expired by 2+ days                  */
 /* ------------------------------------------------------------------ */
-export const autoResolveExpiredSessionsController = asyncHandler(async (req, res, next) => {
-  const result = await autoResolveExpiredSessions();
-  return successResponse({
-    res,
-    req,
-    status: 200,
-    message: "AUTO_RESOLVE_SUCCESS",
-    data: result,
-  });
-});
-
+export const autoResolveExpiredSessionsController = asyncHandler(
+  async (req, res, next) => {
+    const result = await autoResolveExpiredSessions();
+    return successResponse({
+      res,
+      req,
+      status: 200,
+      message: "AUTO_RESOLVE_SUCCESS",
+      data: result,
+    });
+  },
+);
 
 export const syncSessionStatuses = asyncHandler(async (req, res, next) => {
   const result = await syncAllSessionStatuses({ t: req.t });

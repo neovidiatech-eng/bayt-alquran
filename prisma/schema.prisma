@@ -239,7 +239,7 @@ model schedule {
   createdAt           DateTime          @default(now())
   updatedAt           DateTime          @updatedAt
   notes               String?
-  description         String
+  description         String?
   link                String
   title               String
   end_time            DateTime

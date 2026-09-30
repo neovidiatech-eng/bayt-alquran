@@ -116,9 +116,9 @@ export const updateSchedule = {
   body: Joi.object()
     .keys({
       title: generalFeilds.name,
-      description: generalFeilds.description,
+      description: generalFeilds.description.optional(),
       link: generalFeilds.url,
-      notes: generalFeilds.description,
+      notes: generalFeilds.description.optional(),
       status: Joi.string().valid("planned", "completed", "missed", "cancelled"),
       start_time: Joi.date().greater("now"),
 
@@ -137,9 +137,9 @@ export const updateRecurringGroup = {
   body: Joi.object()
     .keys({
       title: generalFeilds.name,
-      description: generalFeilds.description,
+      description: generalFeilds.description.optional(),
       link: generalFeilds.url,
-      notes: generalFeilds.description,
+      notes: generalFeilds.description.optional(),
       status: Joi.string().valid("planned", "completed", "missed", "cancelled"),
       startTime: Joi.string().regex(/^([01]\d|2[0-3]):?([0-5]\d)$/),
       notification_Time: Joi.string().valid(...Object.values(notificationType)),
