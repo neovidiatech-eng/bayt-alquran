@@ -34,6 +34,7 @@ import {
   syncAllSessionStatuses,
   getScheduleLog,
 } from "./schedules.service.js";
+import { isAdmin } from "../../Utils/Permissions/permissions.js";
 
 /* ------------------------------------------------------------------ */
 /*            Admin creates multiple sessions in one request            */
@@ -1065,17 +1066,112 @@ export const leaveSession = asyncHandler(async (req, res, next) => {
   // If session end time passed, finalize
   if (nowUTC >= session.end_time) {
     await finalizeSession(id, req.t);
+  }
+
+  return successResponse({ res, req, status: 200, message: "LEFT_SUCCESS" });
+});
+
+export const endSession = asyncHandler(async (req, res, next) => {
+  const { id } = req.params;
+  const user = req.user;
+
+  const session = await db.findOne({
+    model: "schedule",
+    where: { id },
+    include: {
+      teacher: { include: { user: true } },
+      student: { include: { user: true } },
+      scheduleLogs: true,
+    },
+  });
+
+  if (!session) {
+    return errorResponse({
+      req,
+      next,
+      status: 404,
+      message: "SESSION_NOT_FOUND",
+    });
+  }
+
+  // Only the assigned teacher or admin/super_admin can end the session
+  const isSuperOrAdmin = isAdmin(user);
+  const isAssignedTeacher = session.teacher?.user?.id === user.id;
+
+  if (!isSuperOrAdmin && !isAssignedTeacher) {
+    return errorResponse({
+      req,
+      next,
+      status: 403,
+      message: "ONLY_TEACHER_CAN_END_SESSION",
+    });
+  }
+
+  if (
+    session.status === "completed" ||
+    session.status === "missed" ||
+    session.status === "cancelled"
+  ) {
+    return errorResponse({
+      req,
+      next,
+      status: 400,
+      message: "SESSION_ALREADY_FINISHED",
+    });
+  }
+
+  let log = getScheduleLog(session);
+  const nowUTC = getNowUTC().toDate();
+
+  if (!log) {
+    log = await db.create({
+      model: "scheduleLog",
+      data: {
+        scheduleId: id,
+        joinTime_teacher: nowUTC,
+        leaveTime_teacher: nowUTC,
+        duration_teacher: 0,
+        isTeacherCompleted: true,
+      },
+    });
   } else {
-    // Check if both have left
-    const updatedLog = await db.findFirst({
+    const updateData = {};
+    if (!log.joinTime_teacher) {
+      updateData.joinTime_teacher = nowUTC;
+    }
+    updateData.leaveTime_teacher = nowUTC;
+    const joinTime = log.joinTime_teacher || nowUTC;
+    updateData.duration_teacher = (nowUTC - joinTime) / 60000;
+    updateData.isTeacherCompleted = true;
+
+    await db.updateOne({
       model: "scheduleLog",
       where: { id: log.id },
+      data: updateData,
     });
-    if (updatedLog.leaveTime_student && updatedLog.leaveTime_teacher) {
-      await finalizeSession(id, req.t);
-    }
   }
-  return successResponse({ res, req, status: 200, message: "LEFT_SUCCESS" });
+
+  const result = await finalizeSession(id, req.t);
+
+  if (session.student?.user?.id) {
+    await db.create({
+      model: "notification",
+      data: {
+        userId: session.student.user.id,
+        title: req.t("NOTIFICATION_SESSION_ENDED_TITLE"),
+        message: req.t("NOTIFICATION_SESSION_ENDED_MSG"),
+        type: "session_ended",
+      },
+    });
+  }
+
+  return successResponse({
+    res,
+    req,
+    status: 200,
+    message: "SESSION_ENDED_SUCCESS",
+    data: result,
+  });
 });
 
 export const submitReview = asyncHandler(async (req, res, next) => {

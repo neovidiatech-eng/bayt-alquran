@@ -68,6 +68,7 @@ export const PERMISSIONS_V2 = {
     DELETE: "sessions:delete",
     JOIN: "sessions:join",
     LEAVE: "sessions:leave",
+    END: "sessions:end",
   },
 
   // Homework Management

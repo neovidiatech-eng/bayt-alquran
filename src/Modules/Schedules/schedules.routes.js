@@ -58,6 +58,7 @@ router.patch(
 
 router.post("/:id/join", authentication(), authorize(PERMISSIONS_V2.SESSIONS.JOIN), validation(schema.joinSession), scheduleController.joinSession);
 router.post("/:id/leave", authentication(), authorize(PERMISSIONS_V2.SESSIONS.LEAVE), validation(schema.leaveSession), scheduleController.leaveSession);
+router.post("/:id/end", authentication(), authorize(PERMISSIONS_V2.SESSIONS.END), validation(schema.endSession), scheduleController.endSession);
 router.post("/:id/review", authentication(), authorize(PERMISSIONS_V2.SESSIONS.READ), validation(schema.submitReview), scheduleController.submitReview);
 
 export default router;

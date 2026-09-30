@@ -232,3 +232,17 @@ export const leaveSession = {
     })
     .required(),
 };
+
+export const endSession = {
+  params: Joi.object()
+    .keys({
+      id: generalFeilds.id
+        .messages({
+          "string.empty": "ID_REQUIRED",
+          "any.required": "ID_REQUIRED",
+          "string.pattern.base": "ID_INVALID",
+        })
+        .required(),
+    })
+    .required(),
+};
