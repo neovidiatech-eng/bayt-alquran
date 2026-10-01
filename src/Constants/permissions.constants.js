@@ -26,7 +26,7 @@ export const PERMISSIONS_V2 = {
     UPDATE: "users:update",
     DELETE: "users:delete",
   },
-  
+
   // Role Management
   ROLES: {
     READ: "roles:read",

@@ -21,6 +21,8 @@ export async function seedRolePermissions() {
 
   const allPermissions = await prisma.permission.findMany();
   const permissionMap = allPermissions.reduce((acc, perm) => {
+    console.log(perm.code);
+
     acc[perm.code] = perm.id;
     return acc;
   }, {});
