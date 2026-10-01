@@ -1064,7 +1064,7 @@ export const leaveSession = asyncHandler(async (req, res, next) => {
   });
 
   // If session end time passed, finalize
-  if (nowUTC >= session.end_time) {
+  if (role === "teacher" && nowUTC >= session.end_time) {
     await finalizeSession(id, req.t);
   }
 
