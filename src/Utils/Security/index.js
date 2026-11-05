@@ -1,8 +1,10 @@
 import bcrypt from "bcryptjs";
 import CryptoJS from "crypto-js";
+
 export const hash = async ({ password, salt = process.env.SALT }) => {
   return await bcrypt.hash(password, Number(salt));
 };
+
 export const compare = async ({ password, hash }) => {
   return await bcrypt.compare(password, hash);
 };
@@ -64,4 +66,3 @@ export const matchPhone = async (storedPhone, inputPhone) => {
     : storedPhone;
   return normalizePhone(decrypted) === normalizePhone(inputPhone);
 };
-

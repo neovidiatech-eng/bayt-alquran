@@ -5,28 +5,10 @@ import {
 } from "../../Utils/Response.js";
 import * as db from "../../database/dbService.js";
 import { ensureExists } from "../../database/genericService.js";
-import {
-  decryptPassword,
-  decryptText,
-  encryptText,
-  looksEncrypted,
-} from "../../Utils/Security/index.js";
-
-const exposeStudentUserSecrets = async (student) => ({
-  ...student,
-  user: student.user
-    ? {
-        ...student.user,
-        phone: looksEncrypted(student.user.phone)
-          ? await decryptText({ text: student.user.phone })
-          : student.user.phone,
-        password: await decryptPassword({ password: student.user.password }),
-      }
-    : student.user,
-});
+import { decryptText, hash, looksEncrypted } from "../../Utils/Security/index.js";
 
 export const getAllStudents = asyncHandler(async (req, res, next) => {
-  const { search, country, plans, page = 1, limit = 10, active } = req.query;
+  const { search, country, plans, page = 1, limit = 10 } = req.query;
 
   const where = {};
   if (search) {
@@ -43,16 +25,9 @@ export const getAllStudents = asyncHandler(async (req, res, next) => {
   if (plans) {
     where.planId = plans;
   }
-  if (active !== undefined) {
-    where.active = active === "true";
-  }
 
-  const [
-    { items: students, pagination },
-    totalCount,
-    activeCount,
-  ] = await Promise.all([
-    db.findManyWithPaginationAndCount({
+  const { items: students, pagination } =
+    await db.findManyWithPaginationAndCount({
       model: "student",
       where,
       page,
@@ -69,44 +44,30 @@ export const getAllStudents = asyncHandler(async (req, res, next) => {
         },
         plan: true,
       },
-    }),
-    db.count({ model: "student" }),
-    db.count({ model: "student", where: { active: true } }),
-  ]);
+    });
   const studentsData = await Promise.all(
-    students.map(exposeStudentUserSecrets),
+    students.map(async (student) => {
+      console.log(student.user.phone);
+
+      const phone = looksEncrypted(student.user.phone)
+        ? await decryptText({ text: student.user.phone })
+        : student.user.phone;
+      console.log(phone);
+      return {
+        ...student,
+        user: {
+          ...student.user,
+          phone: phone,
+        },
+      };
+    }),
   );
 
   return successResponse({
     res,
     req,
     message: "FETCH_SUCCESS",
-    data: {
-      studentsData,
-      pagination,
-      totalCount,
-      activeCount,
-      inactiveCount: totalCount - activeCount,
-    },
-    status: 200,
-  });
-});
-
-export const getStudentStats = asyncHandler(async (req, res, next) => {
-  const [totalCount, activeCount] = await Promise.all([
-    db.count({ model: "student" }),
-    db.count({ model: "student", where: { active: true } }),
-  ]);
-
-  return successResponse({
-    res,
-    req,
-    message: "FETCH_SUCCESS",
-    data: {
-      totalCount,
-      activeCount,
-      inactiveCount: totalCount - activeCount,
-    },
+    data: { studentsData, pagination },
     status: 200,
   });
 });
@@ -154,7 +115,7 @@ export const createStudent = asyncHandler(async (req, res, next) => {
   if (!checkPlan)
     return errorResponse({ req, next, message: "PLAN_NOT_FOUND", status: 404 });
 
-  const encryptedPassword = encryptText({ text: password });
+  const hashedPassword = await hash({ password });
 
   // Fetch system wallet before the transaction so we can reference its id inside
   const systemWallet = await db.findFirst({
@@ -179,7 +140,7 @@ export const createStudent = asyncHandler(async (req, res, next) => {
         name,
         email,
         phone,
-        password: encryptedPassword,
+        password: hashedPassword,
         code_country: phone_code,
         status: "active",
         confirmAt: new Date(),
@@ -296,7 +257,7 @@ export const getStudentById = asyncHandler(async (req, res, next) => {
     res,
     req,
     message: "FETCH_SUCCESS",
-    data: await exposeStudentUserSecrets(student),
+    data: student,
     status: 200,
   });
 });
@@ -388,7 +349,7 @@ export const updateStudent = asyncHandler(async (req, res, next) => {
     res,
     req,
     message: "UPDATE_SUCCESS",
-    data: await exposeStudentUserSecrets(updatedStudent),
+    data: updatedStudent,
     status: 200,
   });
 });

@@ -114,12 +114,12 @@ export const globalErrorHandling = (err, req, res, next) => {
     status = err.status || err.statusCode || 500;
   }
 
-  const errorText = err.message
-    ? getMessage(err.message, lang, err.messageParams)
-    : getMessage("INTERNAL_SERVER_ERROR", lang);
+  const errorText = err.isMessageKey 
+    ? getMessage(err.message, lang, err.messageParams) 
+    : (err.message || getMessage("INTERNAL_SERVER_ERROR", lang));
 
   return res.status(status).json({
-    message: getMessage("ERROR", lang),
+    message: "error",
     status,
     lang: getDir(lang),
     error: errorText,
@@ -137,7 +137,7 @@ export const errorResponse = ({
   req,
   next,
   status = 400,
-  message = "ERROR",
+  message = "error",
   messageParams = {},
   details = null,
 }) => {
@@ -154,7 +154,7 @@ export const successResponse = ({
   req,
   status = 200,
   data,
-  message = "SUCCESS",
+  message = "success",
   messageParams = {},
 }) => {
   const lang = req?.lang || "en";

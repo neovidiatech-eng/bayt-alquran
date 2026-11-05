@@ -218,18 +218,6 @@ export const login = asyncHandler(async (req, res, next) => {
     }
   }
 
-  const subscriptionRequest = user?.subscriptionRequests?.find(
-    (request) => request.status === "pending",
-  );
-  if (subscriptionRequest) {
-    return errorResponse({
-      req,
-      next,
-      message: "USER_ALREADY_HAVE_PENDING_SUBSCRIPTION_REQUEST",
-      status: 400,
-    });
-  }
-
   if (!user || !user.password) {
     return errorResponse({
       req,
@@ -238,6 +226,7 @@ export const login = asyncHandler(async (req, res, next) => {
       status: 404,
     });
   }
+
   const matchedPassword = await comparePassword({
     password,
     storedPassword: user.password,
@@ -250,12 +239,26 @@ export const login = asyncHandler(async (req, res, next) => {
       status: 401,
     });
   }
+
   if (!user.confirmAt) {
     return errorResponse({
       req,
       next,
       message: "USER_NOT_CONFIRMED",
       status: 401,
+    });
+  }
+
+  const isStudent = !user?.role?.name || user.role.name.toLowerCase() === "student";
+  const subscriptionRequest = user?.subscriptionRequests?.find(
+    (request) => request.status === "pending",
+  );
+  if (isStudent && subscriptionRequest) {
+    return errorResponse({
+      req,
+      next,
+      message: "USER_ALREADY_HAVE_PENDING_SUBSCRIPTION_REQUEST",
+      status: 400,
     });
   }
 

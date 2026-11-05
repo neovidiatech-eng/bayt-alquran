@@ -1,16 +1,11 @@
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc.js";
 import timezone from "dayjs/plugin/timezone.js";
-import {
-  addDisplayTimesToSchedule,
-  DEFAULT_TIMEZONE as REQUEST_DEFAULT_TIMEZONE,
-  formatDateTimeForTimezone,
-} from "../Timezone/timezone.js";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
-export const DEFAULT_TIMEZONE = REQUEST_DEFAULT_TIMEZONE;
+export const DEFAULT_TIMEZONE = "Africa/Cairo";
 
 /**
  * Get the current time in UTC
@@ -55,7 +50,7 @@ export const toUTC = (date, tz = DEFAULT_TIMEZONE) => {
  */
 export const toLocal = (date, tz = DEFAULT_TIMEZONE, format = "YYYY-MM-DD HH:mm:ss") => {
   if (!date) return "";
-  return formatDateTimeForTimezone(date, tz, format) || "";
+  return dayjs.utc(date).tz(tz).format(format);
 };
 
 /**
@@ -116,7 +111,11 @@ export const isInsideJoinWindow = (startTime, endTime, windowMinutes = 5) => {
  * @param {string} tz - Target timezone
  */
 export const formatSchedules = (schedules, tz) => {
-  const formatSingle = (s) => addDisplayTimesToSchedule(s, tz);
+  const formatSingle = (s) => ({
+    ...s,
+    start_time: toLocal(s.start_time, tz),
+    end_time: toLocal(s.end_time, tz),
+  });
 
   if (Array.isArray(schedules)) {
     return schedules.map(formatSingle);

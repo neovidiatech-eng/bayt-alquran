@@ -1,7 +1,6 @@
 import * as ChatService from "../../Modules/chat/chat.service.js";
 import * as RedisUtils from "../Redis/index.js";
 import * as db from "../../database/dbService.js";
-import { getLangFromAcceptLanguage, getMessage } from "../i18n.js";
 
 /**
  * Socket.io Logic
@@ -13,8 +12,6 @@ export const init_io = (io) => {
     try {
       const user = socket.user;
       if (!user) return socket.disconnect();
-      const lang = socket.lang || getLangFromAcceptLanguage(socket.handshake.headers["accept-language"]);
-      const t = (key, params) => getMessage(key, lang, params);
 
       console.log(`User connected: ${user.name} (${user.role.name})`);
 
@@ -41,7 +38,7 @@ export const init_io = (io) => {
           // Check participation
           const canAccess = await ChatService.isParticipant(conversationId, user.id, user.role.name);
           if (!canAccess) {
-            return socket.emit("error", { message: t("CHAT_CONVERSATION_ACCESS_DENIED") });
+            return socket.emit("error", { message: "Unauthorized access to this conversation" });
           }
 
           // Join the room
@@ -55,7 +52,7 @@ export const init_io = (io) => {
           
           console.log(`User ${user.name} opened conversation ${conversationId}`);
         } catch (error) {
-          socket.emit("error", { message: t(error.message) });
+          socket.emit("error", { message: error.message });
         }
       });
 
@@ -67,19 +64,19 @@ export const init_io = (io) => {
         try {
           // Rule: Admin is read-only
           if (user.role.name === "admin") {
-            return socket.emit("error", { message: t("CHAT_ADMIN_READ_ONLY") });
+            return socket.emit("error", { message: "Admins cannot send messages" });
           }
 
           // Rule: Rate limiting (30 msgs/min)
           const limited = await RedisUtils.isRateLimited(user.id);
           if (limited) {
-            return socket.emit("error", { message: t("CHAT_RATE_LIMIT_EXCEEDED") });
+            return socket.emit("error", { message: "Rate limit exceeded. Please wait a minute." });
           }
 
           // Check participation
           const canAccess = await ChatService.isParticipant(conversationId, user.id, user.role.name);
           if (!canAccess) {
-            return socket.emit("error", { message: t("CHAT_NOT_PARTICIPANT") });
+            return socket.emit("error", { message: "You are not a participant in this conversation" });
           }
 
           // Save to DB
@@ -89,7 +86,7 @@ export const init_io = (io) => {
           io.to(`conv_${conversationId}`).emit("message:new", message);
 
         } catch (error) {
-          socket.emit("error", { message: t(error.message) });
+          socket.emit("error", { message: error.message });
         }
       });
 

@@ -19,7 +19,7 @@ export const localMulterUpload = ({ customPath = "general", validation = [] } = 
           if (validation.includes(file.mimetype)) {
                return cb(null, true)
           }
-          return cb(new Error("INVALID_FILE_FORMAT"), false)
+          return cb(new Error("inVaild File Format"), false)
 
      }
 
@@ -33,7 +33,7 @@ export const localMulterUpload = ({ customPath = "general", validation = [] } = 
                }
 
                finalPath = basePath;
-               const fullPath = path.resolve(`./${basePath}`)
+               const fullPath = path.resolve(`./src/${basePath}`)
 
 
 

@@ -26,7 +26,7 @@ export const PERMISSIONS_V2 = {
     UPDATE: "users:update",
     DELETE: "users:delete",
   },
-
+  
   // Role Management
   ROLES: {
     READ: "roles:read",
@@ -68,7 +68,6 @@ export const PERMISSIONS_V2 = {
     DELETE: "sessions:delete",
     JOIN: "sessions:join",
     LEAVE: "sessions:leave",
-    END: "sessions:end",
   },
 
   // Homework Management
@@ -170,10 +169,5 @@ export const PERMISSIONS_V2 = {
     CREATE: "subjects:create",
     UPDATE: "subjects:update",
     DELETE: "subjects:delete",
-  },
-
-  // Feedback Management
-  FEEDBACK: {
-    READ: "feedback:read",
   },
 };

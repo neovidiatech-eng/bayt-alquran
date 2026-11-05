@@ -1,4 +1,4 @@
-import { asyncHandler, errorResponse, successResponse } from "../../Utils/Response.js";
+import { asyncHandler, successResponse } from "../../Utils/Response.js";
 import * as db from "../../database/dbService.js";
 
 /**
@@ -69,12 +69,7 @@ export const updateLateDiscount = asyncHandler(async (req, res, next) => {
     lateMinutes === undefined ||
     discountPercentage === undefined
   ) {
-    return errorResponse({
-      req,
-      next,
-      status: 400,
-      message: "LATE_DISCOUNT_FIELDS_REQUIRED",
-    });
+    return next(new Error("lateMinutes and discountPercentage are required"));
   }
 
   const settings = await getSettingsData();

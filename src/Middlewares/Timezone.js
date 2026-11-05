@@ -1,19 +1,25 @@
-import {
-  getClientIp,
-  getGeoFromRequest,
-  resolveRequestTimezone,
-} from "../Utils/Timezone/timezone.js";
+import { DEFAULT_TIMEZONE } from "../Utils/Date/time.js";
 
 /**
- * Middleware to detect the user's timezone from the request IP and attach it
- * to the request object. Falls back to Cairo for local/private/unknown IPs.
+ * Middleware to detect the user's timezone and attach it to the request object.
+ * Priority:
+ * 1. User profile in req.user (if authenticated)
+ * 2. X-Timezone header
+ * 3. Fallback to "Africa/Cairo"
  */
 export const timezoneMiddleware = (req, res, next) => {
-  const geo = getGeoFromRequest(req);
+  let tz = req.user?.timezone;
 
-  req.clientIp = getClientIp(req);
-  req.geo = geo;
-  req.timezone = resolveRequestTimezone(req);
-  req.request_country = geo?.country || null;
+  if (!tz) {
+    tz = req.headers["x-timezone"];
+  }
+
+  // Basic validation for timezone string (IANA format)
+  // We can add a more robust check here if needed
+  if (!tz || typeof tz !== "string") {
+    tz = DEFAULT_TIMEZONE;
+  }
+
+  req.timezone = tz;
   next();
 };

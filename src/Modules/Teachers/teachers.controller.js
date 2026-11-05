@@ -5,17 +5,7 @@ import {
 } from "../../Utils/Response.js";
 import * as db from "../../database/dbService.js";
 import { ensureExists } from "../../database/genericService.js";
-import { decryptPassword, encryptText } from "../../Utils/Security/index.js";
-
-const exposeTeacherPassword = async (teacher) => ({
-  ...teacher,
-  user: teacher.user
-    ? {
-        ...teacher.user,
-        password: await decryptPassword({ password: teacher.user.password }),
-      }
-    : teacher.user,
-});
+import { hash } from "../../Utils/Security/index.js";
 
 export const getAllTeachers = asyncHandler(async (req, res, next) => {
   const { search, page = 1, limit = 10, active } = req.query;
@@ -53,14 +43,12 @@ export const getAllTeachers = asyncHandler(async (req, res, next) => {
     where: { active: true },
   });
 
-  const teachersData = await Promise.all(teachers.map(exposeTeacherPassword));
-
   return successResponse({
     res,
     req,
     message: "FETCH_SUCCESS",
     data: {
-      teachers: teachersData,
+      teachers,
       pagination,
       activeCount,
       inactiveCount: pagination.totalItems - activeCount,
@@ -140,7 +128,7 @@ export const createTeacher = asyncHandler(async (req, res, next) => {
     });
   }
 
-  const encryptedPassword = encryptText({ text: password });
+  const hashedPassword = await hash({ password });
 
   // Use a transaction to ensure both user and profile are created
   const result = await db.transaction(async (tx) => {
@@ -149,7 +137,7 @@ export const createTeacher = asyncHandler(async (req, res, next) => {
       data: {
         name,
         email,
-        password: encryptedPassword,
+        password: hashedPassword,
         phone,
         code_country,
         ...(getrole && { roleId: getrole.id }),
@@ -195,7 +183,7 @@ export const createTeacher = asyncHandler(async (req, res, next) => {
     res,
     req,
     message: "CREATE_SUCCESS",
-    data: await exposeTeacherPassword(result),
+    data: result,
     status: 201,
   });
 });
@@ -219,7 +207,7 @@ export const getTeacher = asyncHandler(async (req, res, next) => {
     res,
     req,
     message: "FETCH_SUCCESS",
-    data: await exposeTeacherPassword(teacher),
+    data: teacher,
   });
 });
 
@@ -245,9 +233,9 @@ export const updateTeacher = asyncHandler(async (req, res, next) => {
     include: { user: true },
   });
 
-  let encryptedPassword;
+  let hashedPassword;
   if (password) {
-    encryptedPassword = encryptText({ text: password });
+    hashedPassword = await hash({ password });
   }
 
   // Handle unique constraints
@@ -274,14 +262,14 @@ export const updateTeacher = asyncHandler(async (req, res, next) => {
   }
 
   // Update user data first if needed
-  if (name || email || encryptedPassword || phone || code_country) {
+  if (name || email || hashedPassword || phone || code_country) {
     await db.updateOne({
       model: "user",
       where: { id: teacher.user_id },
       data: {
         ...(name && { name }),
         ...(email && { email }),
-        ...(encryptedPassword && { password: encryptedPassword }),
+        ...(hashedPassword && { password: hashedPassword }),
         ...(phone && { phone }),
         ...(code_country && { code_country }),
         ...(timezone && { timezone }),
@@ -318,7 +306,7 @@ export const updateTeacher = asyncHandler(async (req, res, next) => {
     res,
     req,
     message: "UPDATE_SUCCESS",
-    data: await exposeTeacherPassword(updatedTeacher),
+    data: updatedTeacher,
   });
 });
 

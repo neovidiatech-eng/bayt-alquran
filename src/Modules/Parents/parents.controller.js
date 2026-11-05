@@ -1,8 +1,7 @@
 import { asyncHandler, successResponse, errorResponse } from "../../Utils/Response.js";
-import { formatSchedules } from "../../Utils/Date/time.js";
 import * as db from "../../database/dbService.js";
 import { ensureExists } from "../../database/genericService.js";
-import { decryptPassword, encryptText, decryptText, looksEncrypted } from "../../Utils/Security/index.js";
+import { hash, encryptText, decryptText, looksEncrypted } from "../../Utils/Security/index.js";
 
 // GET /parents
 export const getAllParents = asyncHandler(async (req, res, next) => {
@@ -64,7 +63,6 @@ export const getAllParents = asyncHandler(async (req, res, next) => {
         id: parent.id,
         name: parent.name,
         email: parent.email,
-        password: await decryptPassword({ password: parent.password }),
         phone: phone,
         code_country: parent.code_country,
         status: parent.status,
@@ -147,7 +145,6 @@ export const getParent = asyncHandler(async (req, res, next) => {
     id: parent.id,
     name: parent.name,
     email: parent.email,
-    password: await decryptPassword({ password: parent.password }),
     phone: phone,
     code_country: parent.code_country,
     status: parent.status,
@@ -198,7 +195,7 @@ export const createParent = asyncHandler(async (req, res, next) => {
     return errorResponse({ req, next, message: "ROLE_NOT_FOUND", status: 404 });
   }
 
-  const encryptedPassword = encryptText({ text: password });
+  const hashedPassword = await hash({ password });
   const encryptedPhone = encryptText({ text: phone });
 
   let newParent;
@@ -209,7 +206,7 @@ export const createParent = asyncHandler(async (req, res, next) => {
       data: {
         name,
         email,
-        password: encryptedPassword,
+        password: hashedPassword,
         phone: encryptedPhone,
         code_country,
         roleId: parentRole.id,
@@ -227,9 +224,7 @@ export const createParent = asyncHandler(async (req, res, next) => {
         });
 
         if (!student) {
-          const error = new Error("STUDENT_NOT_FOUND_WITH_ID");
-          error.messageParams = { id: studentId };
-          throw error;
+          throw new Error(`STUDENT_NOT_FOUND: ${studentId}`);
         }
 
         await tx.create({
@@ -277,7 +272,6 @@ export const createParent = asyncHandler(async (req, res, next) => {
       id: createdParent.id,
       name: createdParent.name,
       email: createdParent.email,
-      password: await decryptPassword({ password: createdParent.password }),
       phone: phoneDecrypted,
       code_country: createdParent.code_country,
       status: createdParent.status,
@@ -316,9 +310,9 @@ export const updateParent = asyncHandler(async (req, res, next) => {
     where: { id, roleId: parentRole.id },
   });
 
-  let encryptedPassword;
+  let hashedPassword;
   if (password) {
-    encryptedPassword = encryptText({ text: password });
+    hashedPassword = await hash({ password });
   }
 
   // Handle unique constraints
@@ -355,7 +349,7 @@ export const updateParent = asyncHandler(async (req, res, next) => {
       data: {
         ...(name && { name }),
         ...(email && { email }),
-        ...(encryptedPassword && { password: encryptedPassword }),
+        ...(hashedPassword && { password: hashedPassword }),
         ...(encryptedPhone && { phone: encryptedPhone }),
         ...(code_country && { code_country }),
         ...(active !== undefined && { status: active === true ? "active" : "blocked" }),
@@ -379,9 +373,7 @@ export const updateParent = asyncHandler(async (req, res, next) => {
           });
 
           if (!student) {
-            const error = new Error("STUDENT_NOT_FOUND_WITH_ID");
-            error.messageParams = { id: studentId };
-            throw error;
+            throw new Error(`STUDENT_NOT_FOUND: ${studentId}`);
           }
 
           await tx.create({
@@ -429,7 +421,6 @@ export const updateParent = asyncHandler(async (req, res, next) => {
       id: parentDetails.id,
       name: parentDetails.name,
       email: parentDetails.email,
-      password: await decryptPassword({ password: parentDetails.password }),
       phone: phoneDecrypted,
       code_country: parentDetails.code_country,
       status: parentDetails.status,
@@ -591,7 +582,7 @@ export const getStudentSessions = asyncHandler(async (req, res, next) => {
     req,
     res,
     status: 200,
-    data: formatSchedules(sessions, req.timezone),
+    data: sessions,
   });
 });
 

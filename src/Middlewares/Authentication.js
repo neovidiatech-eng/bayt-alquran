@@ -7,16 +7,16 @@ export const authentication = () => {
   return asyncHandler(async (req, res, next) => {
     const { authorization } = req.headers;
     if (!authorization) {
-      return next(new Error("UNAUTHORIZED", { cause: 401 }));
+      return next(new Error("Unauthorized", { cause: 401 }));
     }
     const [bearer, token] = authorization.split(" ");
     if (!token || !bearer || bearer !== "Bearer") {
-      return next(new Error("UNAUTHORIZED", { cause: 401 }));
+      return next(new Error("Unauthorized", { cause: 401 }));
     }
 
     const decoded = verifyToken({ token });
     if (!decoded || !decoded.id) {
-      return next(new Error("INVALID_TOKEN", { cause: 401 }));
+      return next(new Error("Invalid Token", { cause: 401 }));
     }
 
     const cacheKey = `user:${decoded.id}`;
@@ -66,7 +66,7 @@ export const authentication = () => {
 
     if (!user) {
       return next(
-        new Error("USER_UNAUTHORIZED_OR_UNCONFIRMED", { cause: 401 }),
+        new Error("Unauthorized or Account Not Confirmed", { cause: 401 }),
       );
     }
 

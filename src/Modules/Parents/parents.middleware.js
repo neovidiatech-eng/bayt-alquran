@@ -4,7 +4,7 @@ import * as db from "../../database/dbService.js";
 export const isParent = () => {
   return asyncHandler(async (req, res, next) => {
     if (req.user?.role?.name?.toLowerCase() !== "parent") {
-      return next(new Error("PARENT_ACCESS_ONLY", { cause: 403 }));
+      return next(new Error("Access Denied: Only Parents can access this route", { cause: 403 }));
     }
     next();
   });
@@ -24,7 +24,7 @@ export const verifyStudentBelongsToParent = () => {
     });
 
     if (!relation) {
-      return next(new Error("PARENT_STUDENT_ACCESS_DENIED", { cause: 403 }));
+      return next(new Error("Access Denied: You are not authorized to view this student's data", { cause: 403 }));
     }
     next();
   });

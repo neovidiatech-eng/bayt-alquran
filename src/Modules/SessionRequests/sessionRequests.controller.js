@@ -4,7 +4,7 @@ import {
   errorResponse,
 } from "../../Utils/Response.js";
 import * as db from "../../database/dbService.js";
-import { formatSchedules, normalizeDate } from "../../Utils/Helpers.js";
+import { normalizeDate } from "../../Utils/Helpers.js";
 
 // 1. Create Request (Teacher/Student)
 export const createRequest = asyncHandler(async (req, res, next) => {
@@ -78,14 +78,7 @@ export const getAllRequests = asyncHandler(async (req, res, next) => {
     orderBy: { createdAt: "desc" },
   });
 
-  const formattedRequests = requests.map((request) => ({
-    ...request,
-    schedule: request.schedule
-      ? formatSchedules(request.schedule, req.timezone)
-      : request.schedule,
-  }));
-
-  return successResponse({ res, req, data: formattedRequests });
+  return successResponse({ res, data: requests });
 });
 
 // 3. Approve Request (Admin)
@@ -136,8 +129,8 @@ export const approveRequest = asyncHandler(async (req, res, next) => {
         throw new Error("RELATED_SESSION_NOT_FOUND");
       }
 
-      const startTime = normalizeDate(requestedData.new_start_time, req.timezone);
-      const endTime = normalizeDate(requestedData.new_end_time, req.timezone);
+      const startTime = normalizeDate(requestedData.new_start_time);
+      const endTime = normalizeDate(requestedData.new_end_time);
 
       // Conflict check
       const teacher_conflict = await tx.findFirst({
@@ -204,8 +197,8 @@ export const approveRequest = asyncHandler(async (req, res, next) => {
         data: { sessions_remaining: { increment: 1 } },
       });
     } else if (type === "new_session") {
-      const startTime = normalizeDate(requestedData.new_start_time, req.timezone);
-      const endTime = normalizeDate(requestedData.new_end_time, req.timezone);
+      const startTime = normalizeDate(requestedData.new_start_time);
+      const endTime = normalizeDate(requestedData.new_end_time);
       const teacherId = requestedData.teacherId || request.requesterId;
       const studentId = requestedData.studentId;
 

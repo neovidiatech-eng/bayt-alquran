@@ -1,0 +1,580 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Jipter LMS API",
+    "version": "1.0.0",
+    "description": "Core API for the Jipter Learning Management System. This documentation accurately reflects the current codebase paths (as-is)."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:4000",
+      "description": "Local Development Server"
+    },
+    {
+      "url": "https://perfect-due.com",
+      "description": "Production Server"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "RegisterRequest": {
+        "type": "object",
+        "required": ["name", "email", "password", "codeCountry", "phone", "birth_date", "gender", "country"],
+        "properties": {
+          "name": { "type": "string", "example": "Mostafa Mnesey" },
+          "email": { "type": "string", "format": "email", "example": "mneseym@gmail.com" },
+          "password": { "type": "string", "format": "password", "example": "Mostafa@@252200" },
+          "codeCountry": { "type": "string", "example": "+20" },
+          "phone": { "type": "string", "example": "01069441989" },
+          "plan_id": { "type": "string", "format": "uuid", "example": "d1ecd76d-7125-4f78-9b9e-197989c966bc" },
+          "birth_date": { "type": "string", "format": "date", "example": "2026-03-15" },
+          "gender": { "type": "string", "enum": ["male", "female"], "example": "male" },
+          "country": { "type": "string", "example": "Egypt" }
+        }
+      },
+      "LoginRequest": {
+        "type": "object",
+        "required": ["email", "password"],
+        "properties": {
+          "email": { "type": "string", "format": "email", "example": "mneseym@gmail.com" },
+          "password": { "type": "string", "format": "password" }
+        }
+      },
+      "ResetPasswordRequest": {
+        "type": "object",
+        "required": ["email", "otp", "password", "confirm"],
+        "properties": {
+          "email": { "type": "string", "format": "email" },
+          "otp": { "type": "string", "example": "978245" },
+          "password": { "type": "string" },
+          "confirm": { "type": "string" }
+        }
+      },
+      "Currency": {
+        "type": "object",
+        "properties": {
+          "name_en": { "type": "string", "example": "pound" },
+          "name_ar": { "type": "string", "example": "جنيه استرليني" },
+          "symbol": { "type": "string", "example": "£" },
+          "code": { "type": "string", "example": "GBP" },
+          "exchangeRate": { "type": "number", "example": 0.75 }
+        }
+      },
+      "Plan": {
+        "type": "object",
+        "properties": {
+          "name_en": { "type": "string" },
+          "name_ar": { "type": "string" },
+          "price": { "type": "number" },
+          "duration": { "type": "integer" },
+          "description": { "type": "string" },
+          "sessionsCount": { "type": "integer" },
+          "active": { "type": "boolean" },
+          "bestSeller": { "type": "boolean" },
+          "features": { "type": "array", "items": { "type": "string" } },
+          "currencyId": { "type": "string", "format": "uuid" }
+        }
+      },
+      "Teacher": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "email": { "type": "string", "format": "email" },
+          "password": { "type": "string" },
+          "phone": { "type": "string" },
+          "code_country": { "type": "string" },
+          "currency_id": { "type": "string", "format": "uuid" },
+          "gender": { "type": "string", "enum": ["male", "female"] },
+          "hour_price": { "type": "number" },
+          "active": { "type": "boolean" },
+          "subject_ids": { "type": "array", "items": { "type": "string", "format": "uuid" } }
+        }
+      },
+      "Student": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "email": { "type": "string", "format": "email" },
+          "password": { "type": "string" },
+          "phone": { "type": "string" },
+          "phone_code": { "type": "string" },
+          "country": { "type": "string" },
+          "planId": { "type": "string", "format": "uuid" },
+          "birth_date": { "type": "string", "format": "date-time" },
+          "gender": { "type": "string", "enum": ["male", "female"] },
+          "active": { "type": "boolean" }
+        }
+      },
+      "Schedule": {
+        "type": "object",
+        "properties": {
+          "studentId": { "type": "string", "format": "uuid" },
+          "teacherId": { "type": "string", "format": "uuid" },
+          "subject_id": { "type": "string", "format": "uuid" },
+          "title": { "type": "string" },
+          "description": { "type": "string" },
+          "link": { "type": "string", "format": "uri" },
+          "notes": { "type": "string" },
+          "start_time": { "type": "string", "format": "date-time" },
+          "type": { "type": "string", "enum": ["full", "half"] },
+          "notification_Time": { "type": "string", "example": "10" }
+        }
+      }
+    }
+  },
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "paths": {
+    "/auth/sign-up": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "Student/User Registration",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/RegisterRequest" }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Created" } }
+      }
+    },
+    "/auth/sign-in": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "Login",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/LoginRequest" }
+            }
+          }
+        },
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+    "/auth/verify-account": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "Verify account using OTP",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": { "type": "string" },
+                  "otp": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+    "/auth/resend-otp": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "Resend OTP",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "type": "object", "properties": { "email": { "type": "string" } } }
+            }
+          }
+        },
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+    "/auth/forget-password": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "Forget password request",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "type": "object", "properties": { "email": { "type": "string" } } }
+            }
+          }
+        },
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+    "/auth/reset-password": {
+      "patch": {
+        "tags": ["Authentication"],
+        "summary": "Reset password with OTP",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ResetPasswordRequest" }
+            }
+          }
+        },
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+    "/auth/google-login": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "Google Login",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "idToken": { "type": "string" },
+                  "provider": { "type": "string", "example": "google" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+    "/auth/google-signup": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "Google Sign Up",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "idToken": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+    "/auth/refresh": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "Refresh tokens",
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+    "/transactions/currency/currencies": {
+      "get": {
+        "tags": ["Transactions"],
+        "summary": "List currencies",
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+    "/transactions/currency/{id}": {
+      "parameters": [
+        { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+      ],
+      "get": { "tags": ["Transactions"] }
+    },
+    "/transactions/currency/add-currency": {
+      "post": {
+        "tags": ["Transactions"],
+        "summary": "Add currency",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/Currency" }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Created" } }
+      }
+    },
+    "/transactions/currency/update-currency/{id}": {
+      "parameters": [
+        { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+      ],
+      "patch": {
+        "tags": ["Transactions"],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/Currency" }
+            }
+          }
+        },
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+    "/transactions/currency/delete-currency/{id}": {
+      "parameters": [
+        { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+      ],
+      "delete": { "tags": ["Transactions"] }
+    },
+    "/subscription/plans/": {
+      "get": {
+        "tags": ["Subscriptions"],
+        "responses": { "200": { "description": "OK" } }
+      },
+      "post": {
+        "tags": ["Subscriptions"],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/Plan" }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Created" } }
+      }
+    },
+    "/subscription/plans/{id}": {
+      "parameters": [
+        { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+      ],
+      "patch": { "tags": ["Subscriptions"] },
+      "delete": { "tags": ["Subscriptions"] }
+    },
+    "/subscription/requests": {
+      "get": { "tags": ["Subscriptions"] }
+    },
+    "/subscription/requests/change-status/{id}": {
+      "parameters": [
+        { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+      ],
+      "put": {
+        "tags": ["Subscriptions"],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "type": "object", "properties": { "status": { "type": "string", "enum": ["approved", "rejected"] } } }
+            }
+          }
+        },
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+    "/teachers/subjects/": {
+      "get": { "tags": ["Academics"] }
+    },
+    "/teachers/subjects/create": {
+      "post": {
+        "tags": ["Academics"],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name_en": { "type": "string" },
+                  "name_ar": { "type": "string" },
+                  "active": { "type": "boolean" },
+                  "color": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Created" } }
+      }
+    },
+    "/teachers/subjects/update/{id}": {
+      "parameters": [
+        { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+      ],
+      "patch": { "tags": ["Academics"] },
+      "responses": { "200": { "description": "OK" } }
+    },
+    "/teachers/subjects/delete/{id}": {
+      "parameters": [
+        { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+      ],
+      "delete": { "tags": ["Academics"] },
+      "responses": { "204": { "description": "No Content" } }
+    },
+    "/teachers/": {
+      "get": { "tags": ["Academics"] }
+    },
+    "/teachers/create": {
+      "post": {
+        "tags": ["Academics"],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/Teacher" }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Created" } }
+      }
+    },
+    "/teachers/{id}": {
+      "parameters": [
+        { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+      ],
+      "get": { "tags": ["Academics"] }
+    },
+    "/teachers/update/{id}": {
+      "parameters": [
+        { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+      ],
+      "patch": { "tags": ["Academics"] },
+      "responses": { "200": { "description": "OK" } }
+    },
+    "/teachers/delete/{id}": {
+      "parameters": [
+        { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+      ],
+      "delete": { "tags": ["Academics"] }
+    },
+    "/students": {
+      "get": { "tags": ["Academics"] }
+    },
+    "/students/create": {
+      "post": {
+        "tags": ["Academics"],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/Student" }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Created" } }
+      }
+    },
+    "/students/{id}": {
+      "parameters": [
+        { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+      ],
+      "get": { "tags": ["Academics"] },
+      "delete": { "tags": ["Academics"] }
+    },
+    "/students/update/{id}": {
+      "parameters": [
+        { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+      ],
+      "patch": { "tags": ["Academics"] },
+      "responses": { "200": { "description": "OK" } }
+    },
+    "/schedules/create-one": {
+      "post": {
+        "tags": ["Schedules"],
+        "summary": "Create single session",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/Schedule" }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Created" } }
+      }
+    },
+    "/schedules/create-recurring": {
+      "post": {
+        "tags": ["Schedules"],
+        "summary": "Create recurring sessions",
+        "responses": { "201": { "description": "Created" } }
+      }
+    },
+    "/schedules/{id}": {
+      "parameters": [
+        { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+      ],
+      "patch": { "tags": ["Schedules"] },
+      "delete": { "tags": ["Schedules"] }
+    },
+    "/schedules/teacher/{teacherId}": {
+      "parameters": [
+        { "name": "teacherId", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+      ],
+      "get": { "tags": ["Schedules"] }
+    },
+    "/schedules/student/{studentId}": {
+      "parameters": [
+        { "name": "studentId", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+      ],
+      "get": { "tags": ["Schedules"] }
+    },
+    "/schedules/group/{parent_recurring_id}": {
+      "parameters": [
+        { "name": "parent_recurring_id", "in": "path", "required": true, "schema": { "type": "string" } }
+      ],
+      "delete": { "tags": ["Schedules"] }
+    },
+    "/system/roles": {
+      "get": { "tags": ["System"] }
+    },
+    "/system/roles/create": {
+      "post": { "tags": ["System"] }
+    },
+    "/system/roles/{id}": {
+      "parameters": [
+        { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+      ],
+      "patch": { "tags": ["System"] },
+      "delete": { "tags": ["System"] }
+    },
+    "/system/permissions": {
+      "get": { "tags": ["System"] }
+    },
+    "/system/permissions/create": {
+      "post": { "tags": ["System"] }
+    },
+    "/system/permissions/update/{id}": {
+      "parameters": [
+        { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+      ],
+      "patch": { "tags": ["System"] }
+    },
+    "/system/permissions/{id}": {
+      "parameters": [
+        { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+      ],
+      "delete": { "tags": ["System"] }
+    },
+    "/system/stuff/": {
+      "get": { "tags": ["System"] }
+    },
+    "/system/stuff/{id}": {
+      "parameters": [
+        { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+      ],
+      "get": { "tags": ["System"] }
+    },
+    "/system/stuff/create": {
+      "post": { "tags": ["System"] }
+    },
+    "/system/stuff/update/{id}": {
+      "parameters": [
+        { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+      ],
+      "patch": { "tags": ["System"] }
+    },
+    "/system/stuff/delete/{id}": {
+      "parameters": [
+        { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+      ],
+      "delete": { "tags": ["System"] }
+    },
+    "/calendar/": {
+      "get": { "tags": ["Reports"] }
+    },
+    "/calendar/teachers": {
+      "get": { "tags": ["Reports"] }
+    },
+    "/finances/expenses": {
+      "get": { "tags": ["Reports"] }
+    }
+  }
+}

@@ -79,7 +79,6 @@ export const hasAllPermissions = (user, permissionCodes) => {
 export const ROLES = {
   STUDENT: "student",
   TEACHER: "teacher",
-  PARENT: "parent",
   ADMIN: "admin",
   STAFF: "staff",
   SUPER_ADMIN: "super_admin",

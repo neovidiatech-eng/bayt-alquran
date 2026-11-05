@@ -39,7 +39,7 @@ export const createSchedule = {
           "any.required": "DESCRIPTION_REQUIRED",
           "string.pattern.base": "DESCRIPTION_INVALID",
         })
-        .optional(),
+        .required(),
       link: generalFeilds.url
         .messages({
           "string.empty": "LINK_REQUIRED",
@@ -47,13 +47,11 @@ export const createSchedule = {
           "string.pattern.base": "LINK_INVALID",
         })
         .required(),
-      notes: generalFeilds.description
-        .messages({
-          "string.empty": "NOTES_REQUIRED",
-          "any.required": "NOTES_REQUIRED",
-          "string.pattern.base": "NOTES_INVALID",
-        })
-        .optional(),
+      notes: generalFeilds.description.messages({
+        "string.empty": "NOTES_REQUIRED",
+        "any.required": "NOTES_REQUIRED",
+        "string.pattern.base": "NOTES_INVALID",
+      }),
 
       start_time: generalFeilds.date.greater("now").messages({
         "string.empty": "START_TIME_REQUIRED",
@@ -79,9 +77,9 @@ export const createRecurringSchedule = {
       teacherId: generalFeilds.id.required(),
       subject_id: generalFeilds.id.required(),
       title: generalFeilds.name.required(),
-      description: generalFeilds.description.optional(),
+      description: generalFeilds.description.required(),
       link: generalFeilds.url.required(),
-      notes: generalFeilds.description.optional(),
+      notes: generalFeilds.description,
       startTime: Joi.string()
         .regex(/^([01]\d|2[0-3]):?([0-5]\d)$/)
         .required()
@@ -116,9 +114,9 @@ export const updateSchedule = {
   body: Joi.object()
     .keys({
       title: generalFeilds.name,
-      description: generalFeilds.description.optional(),
+      description: generalFeilds.description,
       link: generalFeilds.url,
-      notes: generalFeilds.description.optional(),
+      notes: generalFeilds.description,
       status: Joi.string().valid("planned", "completed", "missed", "cancelled"),
       start_time: Joi.date().greater("now"),
 
@@ -137,9 +135,9 @@ export const updateRecurringGroup = {
   body: Joi.object()
     .keys({
       title: generalFeilds.name,
-      description: generalFeilds.description.optional(),
+      description: generalFeilds.description,
       link: generalFeilds.url,
-      notes: generalFeilds.description.optional(),
+      notes: generalFeilds.description,
       status: Joi.string().valid("planned", "completed", "missed", "cancelled"),
       startTime: Joi.string().regex(/^([01]\d|2[0-3]):?([0-5]\d)$/),
       notification_Time: Joi.string().valid(...Object.values(notificationType)),
@@ -220,20 +218,6 @@ export const joinSession = {
 };
 
 export const leaveSession = {
-  params: Joi.object()
-    .keys({
-      id: generalFeilds.id
-        .messages({
-          "string.empty": "ID_REQUIRED",
-          "any.required": "ID_REQUIRED",
-          "string.pattern.base": "ID_INVALID",
-        })
-        .required(),
-    })
-    .required(),
-};
-
-export const endSession = {
   params: Joi.object()
     .keys({
       id: generalFeilds.id

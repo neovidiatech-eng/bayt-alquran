@@ -27,14 +27,6 @@ import {
 } from "../../Utils/Date/time.js";
 import dayjs from "dayjs";
 import { getSettingsData } from "../Settings/settings.controller.js";
-import { getRequestTimezoneMetadata } from "../../Utils/Timezone/timezone.js";
-import {
-  autoResolveExpiredSessions,
-  resolveSingleSession,
-  syncAllSessionStatuses,
-  getScheduleLog,
-} from "./schedules.service.js";
-import { isAdmin } from "../../Utils/Permissions/permissions.js";
 
 /* ------------------------------------------------------------------ */
 /*            Admin creates multiple sessions in one request            */
@@ -65,8 +57,8 @@ export const getAllSchedules = asyncHandler(async (req, res, next) => {
   // 📅 فلترة بالتاريخ
   if (start_date && end_date) {
     where.start_time = {
-      gte: normalizeDate(start_date, req.timezone),
-      lte: normalizeDate(end_date, req.timezone),
+      gte: normalizeDate(start_date),
+      lte: normalizeDate(end_date),
     };
   }
 
@@ -104,7 +96,6 @@ export const getAllSchedules = asyncHandler(async (req, res, next) => {
           },
         },
         subject: true,
-        scheduleLogs: true,
       },
     });
 
@@ -113,11 +104,7 @@ export const getAllSchedules = asyncHandler(async (req, res, next) => {
   return successResponse({
     res,
     req,
-    data: {
-      schedule: formattedSchedules,
-      pagination,
-      ...getRequestTimezoneMetadata(req),
-    },
+    data: { schedule: formattedSchedules, pagination },
     status: 200,
     message: "FETCH_SUCCESS",
   });
@@ -225,9 +212,9 @@ export const createSchedule = asyncHandler(async (req, res, next) => {
         studentId,
         teacherId,
         title,
-        description: description || "",
+        description,
         link: teacher?.meeting_link ? teacher.meeting_link : link,
-        notes: notes || "",
+        notes,
         subjectId: subject_id,
         start_time: startTime,
         end_time: endTime,
@@ -422,14 +409,14 @@ export const createRecurringSchedule = asyncHandler(async (req, res, next) => {
       studentId,
       teacherId,
       title,
-      description: description || "",
+      description,
       link: teacher?.meeting_link ? teacher.meeting_link : link,
-      notes: notes || "",
+      notes,
       start_time,
       end_time,
       subjectId: subject_id,
       is_recurring: true,
-      day_of_week: dayjs.utc(date).tz(req.timezone).format("dddd"),
+      day_of_week: date.toLocaleDateString("en-US", { weekday: "long" }),
       parent_recurring_id: parentRecurringId,
     });
 
@@ -604,7 +591,6 @@ export const getUserSchedules = asyncHandler(async (req, res, next) => {
         },
       },
       subject: true,
-      scheduleLogs: true,
     },
     orderBy: { start_time: "asc" },
   });
@@ -767,18 +753,21 @@ export const updateSchedule = asyncHandler(async (req, res, next) => {
   const updateData = { ...otherData };
 
   // If time or type changes, recalculate end time and check conflicts
-  if (start_time) {
+  if (start_time || type) {
     startTime = start_time
       ? normalizeDate(start_time, req.timezone)
       : startTime;
-    endTime = getEndTime({
+    sessionType = type || sessionType;
+    endTime = getEndTime(
       startTime,
-      duration: schedule.student.plan?.sessionTime,
-      tz: req.timezone,
-    });
+      sessionType,
+      schedule.student.plan?.sessionTime,
+      req.timezone,
+    );
 
     updateData.start_time = startTime;
     updateData.end_time = endTime;
+    updateData.type = sessionType;
     scheduleUpdated = true;
 
     // Conflict check
@@ -1064,114 +1053,19 @@ export const leaveSession = asyncHandler(async (req, res, next) => {
   });
 
   // If session end time passed, finalize
-  if (role === "teacher" && nowUTC >= session.end_time) {
+  if (nowUTC >= session.end_time) {
     await finalizeSession(id, req.t);
-  }
-
-  return successResponse({ res, req, status: 200, message: "LEFT_SUCCESS" });
-});
-
-export const endSession = asyncHandler(async (req, res, next) => {
-  const { id } = req.params;
-  const user = req.user;
-
-  const session = await db.findOne({
-    model: "schedule",
-    where: { id },
-    include: {
-      teacher: { include: { user: true } },
-      student: { include: { user: true } },
-      scheduleLogs: true,
-    },
-  });
-
-  if (!session) {
-    return errorResponse({
-      req,
-      next,
-      status: 404,
-      message: "SESSION_NOT_FOUND",
-    });
-  }
-
-  // Only the assigned teacher or admin/super_admin can end the session
-  const isSuperOrAdmin = isAdmin(user);
-  const isAssignedTeacher = session.teacher?.user?.id === user.id;
-
-  if (!isSuperOrAdmin && !isAssignedTeacher) {
-    return errorResponse({
-      req,
-      next,
-      status: 403,
-      message: "ONLY_TEACHER_CAN_END_SESSION",
-    });
-  }
-
-  if (
-    session.status === "completed" ||
-    session.status === "missed" ||
-    session.status === "cancelled"
-  ) {
-    return errorResponse({
-      req,
-      next,
-      status: 400,
-      message: "SESSION_ALREADY_FINISHED",
-    });
-  }
-
-  let log = getScheduleLog(session);
-  const nowUTC = getNowUTC().toDate();
-
-  if (!log) {
-    log = await db.create({
-      model: "scheduleLog",
-      data: {
-        scheduleId: id,
-        joinTime_teacher: nowUTC,
-        leaveTime_teacher: nowUTC,
-        duration_teacher: 0,
-        isTeacherCompleted: true,
-      },
-    });
   } else {
-    const updateData = {};
-    if (!log.joinTime_teacher) {
-      updateData.joinTime_teacher = nowUTC;
-    }
-    updateData.leaveTime_teacher = nowUTC;
-    const joinTime = log.joinTime_teacher || nowUTC;
-    updateData.duration_teacher = (nowUTC - joinTime) / 60000;
-    updateData.isTeacherCompleted = true;
-
-    await db.updateOne({
+    // Check if both have left
+    const updatedLog = await db.findFirst({
       model: "scheduleLog",
       where: { id: log.id },
-      data: updateData,
     });
+    if (updatedLog.leaveTime_student && updatedLog.leaveTime_teacher) {
+      await finalizeSession(id, req.t);
+    }
   }
-
-  const result = await finalizeSession(id, req.t);
-
-  if (session.student?.user?.id) {
-    await db.create({
-      model: "notification",
-      data: {
-        userId: session.student.user.id,
-        title: req.t("NOTIFICATION_SESSION_ENDED_TITLE"),
-        message: req.t("NOTIFICATION_SESSION_ENDED_MSG"),
-        type: "session_ended",
-      },
-    });
-  }
-
-  return successResponse({
-    res,
-    req,
-    status: 200,
-    message: "SESSION_ENDED_SUCCESS",
-    data: result,
-  });
+  return successResponse({ res, req, status: 200, message: "LEFT_SUCCESS" });
 });
 
 export const submitReview = asyncHandler(async (req, res, next) => {
@@ -1233,7 +1127,7 @@ export const submitReview = asyncHandler(async (req, res, next) => {
     });
   }
 
-  let log = getScheduleLog(session);
+  let log = session.scheduleLogs?.[0];
 
   if (!log) {
     log = await db.upsertOne({
@@ -1310,28 +1204,6 @@ export const submitReview = asyncHandler(async (req, res, next) => {
       });
     }
 
-    review = await tx.create({
-      model: "Review",
-      data: {
-        scheduleId: id,
-        reviewerId: user.id,
-        revieweeId,
-        rating: parseInt(rating, 10),
-        comment,
-        role,
-      },
-    });
-
-    const studentReview = isStudent
-      ? review
-      : await tx.findFirst({
-          model: "Review",
-          where: {
-            scheduleId: id,
-            reviewerId: session.student.user.id,
-          },
-        });
-
     if (session.status === "ongoing") {
       if (!teacherActuallyAttended) {
         // Teacher absent => refund student
@@ -1350,8 +1222,8 @@ export const submitReview = asyncHandler(async (req, res, next) => {
             status: "missed",
           },
         });
-      } else if (studentReview) {
-        // Teacher attended AND student review exists => calculate payout and complete session
+      } else {
+        // Teacher attended => calculate payout
         const sessionDuration =
           (session.end_time - session.start_time) / (60 * 1000 * 60);
 
@@ -1418,6 +1290,18 @@ export const submitReview = asyncHandler(async (req, res, next) => {
         }
       }
     }
+
+    review = await tx.create({
+      model: "Review",
+      data: {
+        scheduleId: id,
+        reviewerId: user.id,
+        revieweeId,
+        rating: parseInt(rating, 10),
+        comment,
+        role,
+      },
+    });
   });
 
   await updateAverageRating(revieweeId);
@@ -1446,7 +1330,47 @@ export const submitReview = asyncHandler(async (req, res, next) => {
 /* ------------------------------------------------------------------ */
 
 async function finalizeSession(scheduleId, t) {
-  return await resolveSingleSession(scheduleId, { t });
+  const session = await db.findOne({
+    model: "schedule",
+    where: { id: scheduleId },
+    include: {
+      scheduleLogs: true,
+      student: true,
+      teacher: { include: { user: true } },
+    },
+  });
+
+  if (!session || session.status === "completed" || session.status === "missed")
+    return;
+
+  const log = session.scheduleLogs[0];
+  if (!log) return;
+
+  let newStatus = "completed";
+  if (!log.joinTime_student && !log.joinTime_teacher) {
+    newStatus = "missed";
+  }
+
+  await db.updateOne({
+    model: "schedule",
+    where: { id: scheduleId },
+    data: { status: newStatus },
+  });
+
+  // Notify if missed
+  if (newStatus === "missed") {
+    await db.create({
+      model: "notification",
+      data: {
+        userId: session.student.user_id,
+        title: t ? t("NOTIFICATION_SESSION_MISSED_TITLE") : "Session Missed",
+        message: t
+          ? t("NOTIFICATION_SESSION_MISSED_MSG", { title: session.title })
+          : `The session ${session.title} was marked as missed.`,
+        type: "session_missed",
+      },
+    });
+  }
 }
 
 async function updateAverageRating(userId) {
@@ -1486,31 +1410,3 @@ async function updateAverageRating(userId) {
     }
   }
 }
-
-/* ------------------------------------------------------------------ */
-/*            Auto-resolve sessions expired by 2+ days                  */
-/* ------------------------------------------------------------------ */
-export const autoResolveExpiredSessionsController = asyncHandler(
-  async (req, res, next) => {
-    const result = await autoResolveExpiredSessions();
-    return successResponse({
-      res,
-      req,
-      status: 200,
-      message: "AUTO_RESOLVE_SUCCESS",
-      data: result,
-    });
-  },
-);
-
-export const syncSessionStatuses = asyncHandler(async (req, res, next) => {
-  const result = await syncAllSessionStatuses({ t: req.t });
-
-  return successResponse({
-    res,
-    req,
-    status: 200,
-    message: "STATUSES_SYNCED_SUCCESSFULLY",
-    data: result,
-  });
-});

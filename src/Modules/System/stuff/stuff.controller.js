@@ -5,26 +5,8 @@ import {
 } from "../../../Utils/Response.js";
 import * as db from "../../../database/dbService.js";
 import { ensureExists } from "../../../database/genericService.js";
-import {
-  decryptPassword,
-  decryptText,
-  encryptText,
-  looksEncrypted,
-} from "../../../Utils/Security/index.js";
+import { encryptText, hash } from "../../../Utils/Security/index.js";
 import { redis } from "../../../Utils/Radis/Connection.js";
-
-const exposeStuffUserSecrets = async (stuff) => ({
-  ...stuff,
-  user: stuff.user
-    ? {
-        ...stuff.user,
-        phone: looksEncrypted(stuff.user.phone)
-          ? await decryptText({ text: stuff.user.phone })
-          : stuff.user.phone,
-        password: await decryptPassword({ password: stuff.user.password }),
-      }
-    : stuff.user,
-});
 
 export const getAllStuff = asyncHandler(async (req, res, next) => {
   const { search, page = 1, limit = 10 } = req.query;
@@ -50,13 +32,11 @@ export const getAllStuff = asyncHandler(async (req, res, next) => {
     },
   });
 
-  const stuffData = await Promise.all(stuff.map(exposeStuffUserSecrets));
-
   return successResponse({
     res,
     req,
     message: "FETCH_SUCCESS",
-    data: { stuff: stuffData, pagination },
+    data: { stuff, pagination },
   });
 });
 
@@ -88,7 +68,7 @@ export const getStuffById = asyncHandler(async (req, res, next) => {
     req,
     message: "FETCH_SUCCESS",
     data: {
-      stuff: await exposeStuffUserSecrets(stuff),
+      stuff,
       permissions,
     },
   });
@@ -112,14 +92,14 @@ export const createStuffUser = asyncHandler(async (req, res, next) => {
   if (roleId && !checkRole)
     return errorResponse({ req, next, message: "ROLE_NOT_FOUND", status: 404 });
 
-  const encryptedPassword = encryptText({ text: password });
+  const hashedPassword = await hash({ password });
 
   const result = await db.transaction([
     db.create({
       model: "user",
       data: {
         email,
-        password: encryptedPassword,
+        password: hashedPassword,
         name,
         phone,
         code_country: codeCountry,
@@ -146,13 +126,13 @@ export const createStuffUser = asyncHandler(async (req, res, next) => {
     req,
     message: "CREATE_SUCCESS",
     status: 201,
-    data: await exposeStuffUserSecrets(newStuff),
+    data: newStuff,
   });
 });
 
 export const updateStuffUser = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
-  const { name, email, password, phone, code_country, roleId } = req.body;
+  const { name, email, phone, code_country, roleId } = req.body;
 
   const stuff = await ensureExists({
     model: "stuff",
@@ -173,16 +153,13 @@ export const updateStuffUser = asyncHandler(async (req, res, next) => {
   }
 
   // Update user data
-  const encryptedPassword = password ? encryptText({ text: password }) : undefined;
-
-  if (name || email || encryptedPassword || phone || code_country || roleId !== undefined) {
+  if (name || email || phone || code_country || roleId !== undefined) {
     await db.updateOne({
       model: "user",
       where: { id: stuff.user_id },
       data: {
         ...(name && { name }),
         ...(email && { email }),
-        ...(encryptedPassword && { password: encryptedPassword }),
         ...(phone && { phone }),
         ...(code_country && { code_country }),
         ...(roleId !== undefined && { roleId }),
@@ -208,7 +185,7 @@ export const updateStuffUser = asyncHandler(async (req, res, next) => {
     res,
     req,
     message: "UPDATE_SUCCESS",
-    data: await exposeStuffUserSecrets(updatedStuff),
+    data: updatedStuff,
   });
 });
 
@@ -260,7 +237,7 @@ export const registerParent = asyncHandler(async (req, res, next) => {
     return errorResponse({ req, next, message: "PHONE_EXISTS", status: 400 });
   }
 
-  const encryptedPassword = encryptText({ text: password });
+  const hashedPassword = await hash({ password });
   const encryptedPhone = encryptText({ text: phone });
 
   await db.transaction(async (tx) => {
@@ -269,7 +246,7 @@ export const registerParent = asyncHandler(async (req, res, next) => {
       data: {
         name,
         email,
-        password: encryptedPassword,
+        password: hashedPassword,
         phone: encryptedPhone,
         code_country: codeCountry,
         timezone,
