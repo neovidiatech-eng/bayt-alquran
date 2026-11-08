@@ -14,12 +14,10 @@
 
 ---
 
-## 📡 تفاصيل الـ Endpoints
+## 📡 تفاصيل الـ Endpoints والتوثيق عبر Swagger
 
-الـ Base URL لجميع مسارات الجلسات:
-```
-/api/v1/schedules
-```
+الـ Base URL لجميع مسارات الجلسات هو `/schedules` (ويمكن تجربة كافة الـ Endpoints وتصفح الـ Schemas مباشرة عبر واجهة Swagger التفاعلية على الرابط `/api-docs`).
+
 > **ملاحظة:** تأكد من إرسال الـ `Authorization: Bearer <Token>` مع جميع الطلبات.
 
 ---

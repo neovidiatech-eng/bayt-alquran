@@ -1,18 +1,18 @@
 {
   "openapi": "3.0.0",
   "info": {
-    "title": "Jipter LMS API",
+    "title": "Bayt Al-Quran API",
     "version": "1.0.0",
-    "description": "Core API for the Jipter Learning Management System. This documentation accurately reflects the current codebase paths (as-is)."
+    "description": "API documentation for Bayt Al-Quran LMS, including Jitsi Meet live sessions, individual and group sessions management."
   },
   "servers": [
     {
-      "url": "http://localhost:4000",
-      "description": "Local Development Server"
+      "url": "/",
+      "description": "Current Environment (Relative)"
     },
     {
-      "url": "https://perfect-due.com",
-      "description": "Production Server"
+      "url": "http://localhost:3007",
+      "description": "Local Development"
     }
   ],
   "components": {
@@ -26,105 +26,724 @@
     "schemas": {
       "RegisterRequest": {
         "type": "object",
-        "required": ["name", "email", "password", "codeCountry", "phone", "birth_date", "gender", "country"],
+        "required": [
+          "name",
+          "email",
+          "password",
+          "codeCountry",
+          "phone",
+          "birth_date",
+          "gender",
+          "country"
+        ],
         "properties": {
-          "name": { "type": "string", "example": "Mostafa Mnesey" },
-          "email": { "type": "string", "format": "email", "example": "mneseym@gmail.com" },
-          "password": { "type": "string", "format": "password", "example": "Mostafa@@252200" },
-          "codeCountry": { "type": "string", "example": "+20" },
-          "phone": { "type": "string", "example": "01069441989" },
-          "plan_id": { "type": "string", "format": "uuid", "example": "d1ecd76d-7125-4f78-9b9e-197989c966bc" },
-          "birth_date": { "type": "string", "format": "date", "example": "2026-03-15" },
-          "gender": { "type": "string", "enum": ["male", "female"], "example": "male" },
-          "country": { "type": "string", "example": "Egypt" }
+          "name": {
+            "type": "string",
+            "example": "Mostafa Mnesey"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "mneseym@gmail.com"
+          },
+          "password": {
+            "type": "string",
+            "format": "password",
+            "example": "Mostafa@@252200"
+          },
+          "codeCountry": {
+            "type": "string",
+            "example": "+20"
+          },
+          "phone": {
+            "type": "string",
+            "example": "01069441989"
+          },
+          "plan_id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "d1ecd76d-7125-4f78-9b9e-197989c966bc"
+          },
+          "birth_date": {
+            "type": "string",
+            "format": "date",
+            "example": "2026-03-15"
+          },
+          "gender": {
+            "type": "string",
+            "enum": [
+              "male",
+              "female"
+            ],
+            "example": "male"
+          },
+          "country": {
+            "type": "string",
+            "example": "Egypt"
+          }
         }
       },
       "LoginRequest": {
         "type": "object",
-        "required": ["email", "password"],
+        "required": [
+          "email",
+          "password"
+        ],
         "properties": {
-          "email": { "type": "string", "format": "email", "example": "mneseym@gmail.com" },
-          "password": { "type": "string", "format": "password" }
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "mneseym@gmail.com"
+          },
+          "password": {
+            "type": "string",
+            "format": "password"
+          }
         }
       },
       "ResetPasswordRequest": {
         "type": "object",
-        "required": ["email", "otp", "password", "confirm"],
+        "required": [
+          "email",
+          "otp",
+          "password",
+          "confirm"
+        ],
         "properties": {
-          "email": { "type": "string", "format": "email" },
-          "otp": { "type": "string", "example": "978245" },
-          "password": { "type": "string" },
-          "confirm": { "type": "string" }
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "otp": {
+            "type": "string",
+            "example": "978245"
+          },
+          "password": {
+            "type": "string"
+          },
+          "confirm": {
+            "type": "string"
+          }
         }
       },
       "Currency": {
         "type": "object",
         "properties": {
-          "name_en": { "type": "string", "example": "pound" },
-          "name_ar": { "type": "string", "example": "جنيه استرليني" },
-          "symbol": { "type": "string", "example": "£" },
-          "code": { "type": "string", "example": "GBP" },
-          "exchangeRate": { "type": "number", "example": 0.75 }
+          "name_en": {
+            "type": "string",
+            "example": "pound"
+          },
+          "name_ar": {
+            "type": "string",
+            "example": "جنيه استرليني"
+          },
+          "symbol": {
+            "type": "string",
+            "example": "£"
+          },
+          "code": {
+            "type": "string",
+            "example": "GBP"
+          },
+          "exchangeRate": {
+            "type": "number",
+            "example": 0.75
+          }
         }
       },
       "Plan": {
         "type": "object",
         "properties": {
-          "name_en": { "type": "string" },
-          "name_ar": { "type": "string" },
-          "price": { "type": "number" },
-          "duration": { "type": "integer" },
-          "description": { "type": "string" },
-          "sessionsCount": { "type": "integer" },
-          "active": { "type": "boolean" },
-          "bestSeller": { "type": "boolean" },
-          "features": { "type": "array", "items": { "type": "string" } },
-          "currencyId": { "type": "string", "format": "uuid" }
+          "name_en": {
+            "type": "string"
+          },
+          "name_ar": {
+            "type": "string"
+          },
+          "price": {
+            "type": "number"
+          },
+          "duration": {
+            "type": "integer"
+          },
+          "description": {
+            "type": "string"
+          },
+          "sessionsCount": {
+            "type": "integer"
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "bestSeller": {
+            "type": "boolean"
+          },
+          "features": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "currencyId": {
+            "type": "string",
+            "format": "uuid"
+          }
         }
       },
       "Teacher": {
         "type": "object",
         "properties": {
-          "name": { "type": "string" },
-          "email": { "type": "string", "format": "email" },
-          "password": { "type": "string" },
-          "phone": { "type": "string" },
-          "code_country": { "type": "string" },
-          "currency_id": { "type": "string", "format": "uuid" },
-          "gender": { "type": "string", "enum": ["male", "female"] },
-          "hour_price": { "type": "number" },
-          "active": { "type": "boolean" },
-          "subject_ids": { "type": "array", "items": { "type": "string", "format": "uuid" } }
+          "name": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "password": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "code_country": {
+            "type": "string"
+          },
+          "currency_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "gender": {
+            "type": "string",
+            "enum": [
+              "male",
+              "female"
+            ]
+          },
+          "hour_price": {
+            "type": "number"
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "subject_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
         }
       },
       "Student": {
         "type": "object",
         "properties": {
-          "name": { "type": "string" },
-          "email": { "type": "string", "format": "email" },
-          "password": { "type": "string" },
-          "phone": { "type": "string" },
-          "phone_code": { "type": "string" },
-          "country": { "type": "string" },
-          "planId": { "type": "string", "format": "uuid" },
-          "birth_date": { "type": "string", "format": "date-time" },
-          "gender": { "type": "string", "enum": ["male", "female"] },
-          "active": { "type": "boolean" }
+          "name": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "password": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "phone_code": {
+            "type": "string"
+          },
+          "country": {
+            "type": "string"
+          },
+          "planId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "birth_date": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "gender": {
+            "type": "string",
+            "enum": [
+              "male",
+              "female"
+            ]
+          },
+          "active": {
+            "type": "boolean"
+          }
         }
       },
       "Schedule": {
         "type": "object",
         "properties": {
-          "studentId": { "type": "string", "format": "uuid" },
-          "teacherId": { "type": "string", "format": "uuid" },
-          "subject_id": { "type": "string", "format": "uuid" },
-          "title": { "type": "string" },
-          "description": { "type": "string" },
-          "link": { "type": "string", "format": "uri" },
-          "notes": { "type": "string" },
-          "start_time": { "type": "string", "format": "date-time" },
-          "type": { "type": "string", "enum": ["full", "half"] },
-          "notification_Time": { "type": "string", "example": "10" }
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string",
+            "example": "حصة تجويد وحفظ"
+          },
+          "description": {
+            "type": "string",
+            "example": "مراجعة الجزء الثلاثين مع تصحيح المخارج"
+          },
+          "notes": {
+            "type": "string",
+            "example": "الرجاء الحضور في الموعد المحدد"
+          },
+          "link": {
+            "type": "string",
+            "format": "uri",
+            "example": "https://meet.bayt-alquran.net/bayt-session-7917f30d-2b47-494b-9721-a477ce4d98ea",
+            "description": "Room URL (auto-generated Jitsi URL if omitted during creation)"
+          },
+          "isGroup": {
+            "type": "boolean",
+            "example": false,
+            "description": "true for group sessions, false for 1-on-1 sessions"
+          },
+          "maxStudents": {
+            "type": "integer",
+            "example": 10,
+            "description": "Maximum allowed students for group session"
+          },
+          "studentId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true,
+            "description": "Student ID for individual 1-on-1 session"
+          },
+          "teacherId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "subject_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "planned",
+              "completed",
+              "missed",
+              "cancelled"
+            ],
+            "example": "planned"
+          },
+          "start_time": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-11-10T16:00:00.000Z"
+          },
+          "end_time": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "duration": {
+            "type": "number",
+            "example": 60,
+            "description": "Duration in minutes"
+          },
+          "notification_Time": {
+            "type": "string",
+            "enum": [
+              "5",
+              "10",
+              "15",
+              "30",
+              "60",
+              "120",
+              "1440"
+            ],
+            "example": "15",
+            "description": "Minutes before start to send reminders"
+          },
+          "parent_recurring_id": {
+            "type": "string",
+            "nullable": true
+          },
+          "teacher": {
+            "": "#/components/schemas/Teacher"
+          },
+          "student": {
+            "": "#/components/schemas/Student"
+          },
+          "groupStudents": {
+            "type": "array",
+            "items": {
+              "": "#/components/schemas/ScheduleStudent"
+            },
+            "description": "List of students enrolled in this session (for group sessions)"
+          }
+        }
+      },
+      "ScheduleStudent": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "scheduleId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "studentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "enrolled",
+              "attended",
+              "missed",
+              "cancelled"
+            ],
+            "example": "enrolled"
+          },
+          "joinedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "leftAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "duration": {
+            "type": "number",
+            "nullable": true,
+            "example": 45.5,
+            "description": "Attendance duration in minutes"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "student": {
+            "": "#/components/schemas/Student"
+          }
+        }
+      },
+      "CreateScheduleRequest": {
+        "type": "object",
+        "required": [
+          "teacherId",
+          "subject_id",
+          "title",
+          "description",
+          "start_time",
+          "notification_Time"
+        ],
+        "properties": {
+          "teacherId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Teacher ID"
+          },
+          "subject_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Subject ID"
+          },
+          "title": {
+            "type": "string",
+            "example": "حصة تجويد وحفظ"
+          },
+          "description": {
+            "type": "string",
+            "example": "تسميع سورة الرحمن وتصحيح التلاوة"
+          },
+          "notes": {
+            "type": "string",
+            "example": "الرجاء المراجعة قبل الحصة"
+          },
+          "start_time": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-11-10T15:00:00.000Z"
+          },
+          "notification_Time": {
+            "type": "string",
+            "enum": [
+              "5",
+              "10",
+              "15",
+              "30",
+              "60",
+              "120",
+              "1440"
+            ],
+            "example": "15"
+          },
+          "link": {
+            "type": "string",
+            "format": "uri",
+            "description": "Optional custom meeting link. If omitted, Jitsi room URL is generated automatically."
+          },
+          "isGroup": {
+            "type": "boolean",
+            "default": false,
+            "example": false,
+            "description": "Set true for group session, false for 1-on-1 individual session"
+          },
+          "studentId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Student ID. Required if isGroup is false (individual session)"
+          },
+          "studentIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Array of Student IDs. Required if isGroup is true (group session)"
+          },
+          "maxStudents": {
+            "type": "integer",
+            "default": 10,
+            "example": 10,
+            "description": "Maximum capacity of students for group session"
+          }
+        }
+      },
+      "CreateRecurringScheduleRequest": {
+        "type": "object",
+        "required": [
+          "teacherId",
+          "subject_id",
+          "title",
+          "description",
+          "startTime",
+          "days",
+          "startDate",
+          "notification_Time"
+        ],
+        "properties": {
+          "teacherId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "subject_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string",
+            "example": "سلسلة حلقات التلاوة والتجويد"
+          },
+          "description": {
+            "type": "string",
+            "example": "حلقات أسبوعية مستمرة"
+          },
+          "notes": {
+            "type": "string",
+            "example": "ملاحظات إضافية"
+          },
+          "startTime": {
+            "type": "string",
+            "pattern": "^([01]\\d|2[0-3]):?([0-5]\\d)$",
+            "example": "16:30",
+            "description": "Start time in 24h format (HH:mm)"
+          },
+          "days": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "Saturday",
+                "Sunday",
+                "Monday",
+                "Tuesday",
+                "Wednesday",
+                "Thursday",
+                "Friday"
+              ]
+            },
+            "example": [
+              "Sunday",
+              "Tuesday",
+              "Thursday"
+            ]
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date",
+            "example": "2026-11-15T00:00:00.000Z"
+          },
+          "endDate": {
+            "type": "string",
+            "format": "date",
+            "example": "2026-12-15T00:00:00.000Z",
+            "description": "Provide either endDate or count"
+          },
+          "count": {
+            "type": "integer",
+            "example": 8,
+            "description": "Total occurrences count"
+          },
+          "notification_Time": {
+            "type": "string",
+            "enum": [
+              "5",
+              "10",
+              "15",
+              "30",
+              "60",
+              "120",
+              "1440"
+            ],
+            "example": "15"
+          },
+          "link": {
+            "type": "string",
+            "format": "uri",
+            "description": "Optional custom meeting URL"
+          },
+          "isGroup": {
+            "type": "boolean",
+            "default": false,
+            "example": false
+          },
+          "studentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "studentIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "maxStudents": {
+            "type": "integer",
+            "default": 10,
+            "example": 10
+          }
+        }
+      },
+      "UpdateScheduleRequest": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "link": {
+            "type": "string",
+            "format": "uri"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "planned",
+              "completed",
+              "missed",
+              "cancelled"
+            ]
+          },
+          "start_time": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "notification_Time": {
+            "type": "string",
+            "enum": [
+              "5",
+              "10",
+              "15",
+              "30",
+              "60",
+              "120",
+              "1440"
+            ]
+          }
+        }
+      },
+      "JoinSessionResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "JOINED_SUCCESS"
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "token": {
+                "type": "string",
+                "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJqaXRzaSIsImlzcyI6ImJheXQtYWxxdXJhbiIsInJvb20iOiJiYXl0LXNlc3Npb24tZDFmZGE2ZDMtOTNjNi00OGUxLTk3NWUtZjM3OGQ0OWE2MGU1IiwiY29udGV4dCI6eyJ1c2VyIjp7ImlkIjoiMTAiLCJuYW1lIjoiQWhtZWQgQWxpIiwibW9kZXJhdG9yIjp0cnVlLCJhZmZpbGlhdGlvbiI6Im93bmVyIn19fQ.signature",
+                "description": "Signed Jitsi JWT token for this user and room"
+              },
+              "roomName": {
+                "type": "string",
+                "example": "bayt-session-d1fda6d3-93c6-48e1-975e-f378d49a60e5",
+                "description": "Unique Jitsi room identifier for this schedule"
+              },
+              "url": {
+                "type": "string",
+                "example": "https://meet.bayt-alquran.net/bayt-session-d1fda6d3-93c6-48e1-975e-f378d49a60e5?jwt=eyJhbGci...",
+                "description": "Direct URL to open the meeting room in browser, webview, or iframe"
+              },
+              "domain": {
+                "type": "string",
+                "example": "meet.bayt-alquran.net",
+                "description": "Jitsi server domain (pass to @jitsi/react-sdk or JitsiMeetExternalAPI)"
+              },
+              "isModerator": {
+                "type": "boolean",
+                "example": true,
+                "description": "true for teachers and admins (with moderator tools like mute all and recording), false for students"
+              }
+            }
+          }
+        }
+      },
+      "SubmitReviewRequest": {
+        "type": "object",
+        "required": [
+          "rating",
+          "comment"
+        ],
+        "properties": {
+          "rating": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 5,
+            "example": 5
+          },
+          "comment": {
+            "type": "string",
+            "example": "حصة ممتازة وطالب متميز ما شاء الله"
+          },
+          "teacherAttended": {
+            "type": "boolean",
+            "example": true
+          },
+          "studentAttended": {
+            "type": "boolean",
+            "example": true
+          }
         }
       }
     }
@@ -137,35 +756,53 @@
   "paths": {
     "/auth/sign-up": {
       "post": {
-        "tags": ["Authentication"],
+        "tags": [
+          "Authentication"
+        ],
         "summary": "Student/User Registration",
         "requestBody": {
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/RegisterRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/RegisterRequest"
+              }
             }
           }
         },
-        "responses": { "201": { "description": "Created" } }
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        }
       }
     },
     "/auth/sign-in": {
       "post": {
-        "tags": ["Authentication"],
+        "tags": [
+          "Authentication"
+        ],
         "summary": "Login",
         "requestBody": {
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/LoginRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
             }
           }
         },
-        "responses": { "200": { "description": "OK" } }
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
       }
     },
     "/auth/verify-account": {
       "post": {
-        "tags": ["Authentication"],
+        "tags": [
+          "Authentication"
+        ],
         "summary": "Verify account using OTP",
         "requestBody": {
           "content": {
@@ -173,61 +810,105 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "email": { "type": "string" },
-                  "otp": { "type": "string" }
+                  "email": {
+                    "type": "string"
+                  },
+                  "otp": {
+                    "type": "string"
+                  }
                 }
               }
             }
           }
         },
-        "responses": { "200": { "description": "OK" } }
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
       }
     },
     "/auth/resend-otp": {
       "post": {
-        "tags": ["Authentication"],
+        "tags": [
+          "Authentication"
+        ],
         "summary": "Resend OTP",
         "requestBody": {
           "content": {
             "application/json": {
-              "schema": { "type": "object", "properties": { "email": { "type": "string" } } }
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string"
+                  }
+                }
+              }
             }
           }
         },
-        "responses": { "200": { "description": "OK" } }
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
       }
     },
     "/auth/forget-password": {
       "post": {
-        "tags": ["Authentication"],
+        "tags": [
+          "Authentication"
+        ],
         "summary": "Forget password request",
         "requestBody": {
           "content": {
             "application/json": {
-              "schema": { "type": "object", "properties": { "email": { "type": "string" } } }
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string"
+                  }
+                }
+              }
             }
           }
         },
-        "responses": { "200": { "description": "OK" } }
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
       }
     },
     "/auth/reset-password": {
       "patch": {
-        "tags": ["Authentication"],
+        "tags": [
+          "Authentication"
+        ],
         "summary": "Reset password with OTP",
         "requestBody": {
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/ResetPasswordRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/ResetPasswordRequest"
+              }
             }
           }
         },
-        "responses": { "200": { "description": "OK" } }
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
       }
     },
     "/auth/google-login": {
       "post": {
-        "tags": ["Authentication"],
+        "tags": [
+          "Authentication"
+        ],
         "summary": "Google Login",
         "requestBody": {
           "content": {
@@ -235,19 +916,30 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "idToken": { "type": "string" },
-                  "provider": { "type": "string", "example": "google" }
+                  "idToken": {
+                    "type": "string"
+                  },
+                  "provider": {
+                    "type": "string",
+                    "example": "google"
+                  }
                 }
               }
             }
           }
         },
-        "responses": { "200": { "description": "OK" } }
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
       }
     },
     "/auth/google-signup": {
       "post": {
-        "tags": ["Authentication"],
+        "tags": [
+          "Authentication"
+        ],
         "summary": "Google Sign Up",
         "requestBody": {
           "content": {
@@ -255,326 +947,1111 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "idToken": { "type": "string" }
+                  "idToken": {
+                    "type": "string"
+                  }
                 }
               }
             }
           }
         },
-        "responses": { "200": { "description": "OK" } }
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
       }
     },
     "/auth/refresh": {
       "post": {
-        "tags": ["Authentication"],
+        "tags": [
+          "Authentication"
+        ],
         "summary": "Refresh tokens",
-        "responses": { "200": { "description": "OK" } }
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
       }
     },
     "/transactions/currency/currencies": {
       "get": {
-        "tags": ["Transactions"],
+        "tags": [
+          "Transactions"
+        ],
         "summary": "List currencies",
-        "responses": { "200": { "description": "OK" } }
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
       }
     },
     "/transactions/currency/{id}": {
       "parameters": [
-        { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
       ],
-      "get": { "tags": ["Transactions"] }
+      "get": {
+        "tags": [
+          "Transactions"
+        ]
+      }
     },
     "/transactions/currency/add-currency": {
       "post": {
-        "tags": ["Transactions"],
+        "tags": [
+          "Transactions"
+        ],
         "summary": "Add currency",
         "requestBody": {
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/Currency" }
+              "schema": {
+                "$ref": "#/components/schemas/Currency"
+              }
             }
           }
         },
-        "responses": { "201": { "description": "Created" } }
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        }
       }
     },
     "/transactions/currency/update-currency/{id}": {
       "parameters": [
-        { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
       ],
       "patch": {
-        "tags": ["Transactions"],
+        "tags": [
+          "Transactions"
+        ],
         "requestBody": {
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/Currency" }
+              "schema": {
+                "$ref": "#/components/schemas/Currency"
+              }
             }
           }
         },
-        "responses": { "200": { "description": "OK" } }
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
       }
     },
     "/transactions/currency/delete-currency/{id}": {
       "parameters": [
-        { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
       ],
-      "delete": { "tags": ["Transactions"] }
+      "delete": {
+        "tags": [
+          "Transactions"
+        ]
+      }
     },
     "/subscription/plans/": {
       "get": {
-        "tags": ["Subscriptions"],
-        "responses": { "200": { "description": "OK" } }
+        "tags": [
+          "Subscriptions"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
       },
       "post": {
-        "tags": ["Subscriptions"],
+        "tags": [
+          "Subscriptions"
+        ],
         "requestBody": {
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/Plan" }
+              "schema": {
+                "$ref": "#/components/schemas/Plan"
+              }
             }
           }
         },
-        "responses": { "201": { "description": "Created" } }
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        }
       }
     },
     "/subscription/plans/{id}": {
       "parameters": [
-        { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
       ],
-      "patch": { "tags": ["Subscriptions"] },
-      "delete": { "tags": ["Subscriptions"] }
+      "patch": {
+        "tags": [
+          "Subscriptions"
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Subscriptions"
+        ]
+      }
     },
     "/subscription/requests": {
-      "get": { "tags": ["Subscriptions"] }
+      "get": {
+        "tags": [
+          "Subscriptions"
+        ]
+      }
     },
     "/subscription/requests/change-status/{id}": {
       "parameters": [
-        { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
       ],
       "put": {
-        "tags": ["Subscriptions"],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": { "type": "object", "properties": { "status": { "type": "string", "enum": ["approved", "rejected"] } } }
-            }
-          }
-        },
-        "responses": { "200": { "description": "OK" } }
-      }
-    },
-    "/teachers/subjects/": {
-      "get": { "tags": ["Academics"] }
-    },
-    "/teachers/subjects/create": {
-      "post": {
-        "tags": ["Academics"],
+        "tags": [
+          "Subscriptions"
+        ],
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
                 "properties": {
-                  "name_en": { "type": "string" },
-                  "name_ar": { "type": "string" },
-                  "active": { "type": "boolean" },
-                  "color": { "type": "string" }
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "approved",
+                      "rejected"
+                    ]
+                  }
                 }
               }
             }
           }
         },
-        "responses": { "201": { "description": "Created" } }
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/teachers/subjects/": {
+      "get": {
+        "tags": [
+          "Academics"
+        ]
+      }
+    },
+    "/teachers/subjects/create": {
+      "post": {
+        "tags": [
+          "Academics"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name_en": {
+                    "type": "string"
+                  },
+                  "name_ar": {
+                    "type": "string"
+                  },
+                  "active": {
+                    "type": "boolean"
+                  },
+                  "color": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        }
       }
     },
     "/teachers/subjects/update/{id}": {
       "parameters": [
-        { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
       ],
-      "patch": { "tags": ["Academics"] },
-      "responses": { "200": { "description": "OK" } }
+      "patch": {
+        "tags": [
+          "Academics"
+        ]
+      },
+      "responses": {
+        "200": {
+          "description": "OK"
+        }
+      }
     },
     "/teachers/subjects/delete/{id}": {
       "parameters": [
-        { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
       ],
-      "delete": { "tags": ["Academics"] },
-      "responses": { "204": { "description": "No Content" } }
+      "delete": {
+        "tags": [
+          "Academics"
+        ]
+      },
+      "responses": {
+        "204": {
+          "description": "No Content"
+        }
+      }
     },
     "/teachers/": {
-      "get": { "tags": ["Academics"] }
+      "get": {
+        "tags": [
+          "Academics"
+        ]
+      }
     },
     "/teachers/create": {
       "post": {
-        "tags": ["Academics"],
+        "tags": [
+          "Academics"
+        ],
         "requestBody": {
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/Teacher" }
+              "schema": {
+                "$ref": "#/components/schemas/Teacher"
+              }
             }
           }
         },
-        "responses": { "201": { "description": "Created" } }
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        }
       }
     },
     "/teachers/{id}": {
       "parameters": [
-        { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
       ],
-      "get": { "tags": ["Academics"] }
+      "get": {
+        "tags": [
+          "Academics"
+        ]
+      }
     },
     "/teachers/update/{id}": {
       "parameters": [
-        { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
       ],
-      "patch": { "tags": ["Academics"] },
-      "responses": { "200": { "description": "OK" } }
+      "patch": {
+        "tags": [
+          "Academics"
+        ]
+      },
+      "responses": {
+        "200": {
+          "description": "OK"
+        }
+      }
     },
     "/teachers/delete/{id}": {
       "parameters": [
-        { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
       ],
-      "delete": { "tags": ["Academics"] }
+      "delete": {
+        "tags": [
+          "Academics"
+        ]
+      }
     },
     "/students": {
-      "get": { "tags": ["Academics"] }
+      "get": {
+        "tags": [
+          "Academics"
+        ]
+      }
     },
     "/students/create": {
       "post": {
-        "tags": ["Academics"],
+        "tags": [
+          "Academics"
+        ],
         "requestBody": {
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/Student" }
+              "schema": {
+                "$ref": "#/components/schemas/Student"
+              }
             }
           }
         },
-        "responses": { "201": { "description": "Created" } }
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        }
       }
     },
     "/students/{id}": {
       "parameters": [
-        { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
       ],
-      "get": { "tags": ["Academics"] },
-      "delete": { "tags": ["Academics"] }
+      "get": {
+        "tags": [
+          "Academics"
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Academics"
+        ]
+      }
     },
     "/students/update/{id}": {
       "parameters": [
-        { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
       ],
-      "patch": { "tags": ["Academics"] },
-      "responses": { "200": { "description": "OK" } }
+      "patch": {
+        "tags": [
+          "Academics"
+        ]
+      },
+      "responses": {
+        "200": {
+          "description": "OK"
+        }
+      }
     },
     "/schedules/create-one": {
       "post": {
-        "tags": ["Schedules"],
-        "summary": "Create single session",
+        "tags": [
+          "Schedules"
+        ],
+        "summary": "Create single session (Individual or Group)",
+        "description": "Creates a single live session. For Individual session: set isGroup=false (or omit) and provide studentId. For Group session: set isGroup=true, provide studentIds array, and optional maxStudents. If link is omitted, a unique Jitsi Meet room is automatically generated.",
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/Schedule" }
+              "schema": {
+                "": "#/components/schemas/CreateScheduleRequest"
+              },
+              "examples": {
+                "individualSession": {
+                  "summary": "1-on-1 Individual Session (حصة فردية)",
+                  "value": {
+                    "teacherId": "d1ecd76d-7125-4f78-9b9e-197989c966bc",
+                    "studentId": "e2fcd76d-7125-4f78-9b9e-197989c966bd",
+                    "subject_id": "f3acd76d-7125-4f78-9b9e-197989c966be",
+                    "title": "حصة تجويد فردية",
+                    "description": "تسميع سورة النساء مع أحكام النون الساكنة",
+                    "notes": "الرجاء المراجعة قبل الحصة",
+                    "start_time": "2026-11-10T16:00:00.000Z",
+                    "notification_Time": "15",
+                    "isGroup": false
+                  }
+                },
+                "groupSession": {
+                  "summary": "Group Session (حصة جماعية)",
+                  "value": {
+                    "teacherId": "d1ecd76d-7125-4f78-9b9e-197989c966bc",
+                    "subject_id": "f3acd76d-7125-4f78-9b9e-197989c966be",
+                    "title": "حلقة تحفيظ جماعية - المستوى الأول",
+                    "description": "مراجعة الجزء الثلاثين جماعياً",
+                    "notes": "حصة تفاعلية جماعية",
+                    "start_time": "2026-11-10T18:00:00.000Z",
+                    "notification_Time": "30",
+                    "isGroup": true,
+                    "studentIds": [
+                      "e2fcd76d-7125-4f78-9b9e-197989c966bd",
+                      "a1bcd76d-7125-4f78-9b9e-197989c966bf"
+                    ],
+                    "maxStudents": 10
+                  }
+                }
+              }
             }
           }
         },
-        "responses": { "201": { "description": "Created" } }
+        "responses": {
+          "201": {
+            "description": "Session created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "": "#/components/schemas/Schedule"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/schedules/create-recurring": {
       "post": {
-        "tags": ["Schedules"],
-        "summary": "Create recurring sessions",
-        "responses": { "201": { "description": "Created" } }
+        "tags": [
+          "Schedules"
+        ],
+        "summary": "Create recurring sessions (Individual or Group)",
+        "description": "Creates repeating sessions based on days of the week. Supports both individual (studentId) and group (isGroup=true + studentIds). Validates student balances and decrements sessions atomically.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "": "#/components/schemas/CreateRecurringScheduleRequest"
+              },
+              "examples": {
+                "recurringGroup": {
+                  "summary": "Recurring Group Sessions (حلقات جماعية متكررة)",
+                  "value": {
+                    "teacherId": "d1ecd76d-7125-4f78-9b9e-197989c966bc",
+                    "subject_id": "f3acd76d-7125-4f78-9b9e-197989c966be",
+                    "title": "حلقة تحفيظ أسبوعية",
+                    "description": "حلقات سبت وثلاثاء مستمرة",
+                    "startTime": "17:00",
+                    "days": [
+                      "Saturday",
+                      "Tuesday"
+                    ],
+                    "startDate": "2026-11-15T00:00:00.000Z",
+                    "count": 8,
+                    "notification_Time": "15",
+                    "isGroup": true,
+                    "studentIds": [
+                      "e2fcd76d-7125-4f78-9b9e-197989c966bd",
+                      "a1bcd76d-7125-4f78-9b9e-197989c966bf"
+                    ],
+                    "maxStudents": 15
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Recurring sessions created successfully"
+          }
+        }
       }
     },
     "/schedules/{id}": {
       "parameters": [
-        { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "description": "Schedule / Session ID"
+        }
       ],
-      "patch": { "tags": ["Schedules"] },
-      "delete": { "tags": ["Schedules"] }
-    },
-    "/schedules/teacher/{teacherId}": {
-      "parameters": [
-        { "name": "teacherId", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
-      ],
-      "get": { "tags": ["Schedules"] }
-    },
-    "/schedules/student/{studentId}": {
-      "parameters": [
-        { "name": "studentId", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
-      ],
-      "get": { "tags": ["Schedules"] }
+      "patch": {
+        "tags": [
+          "Schedules"
+        ],
+        "summary": "Update session details",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "": "#/components/schemas/UpdateScheduleRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Session updated successfully"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Schedules"
+        ],
+        "summary": "Cancel / Delete single session",
+        "description": "Cancels the session and automatically refunds remaining sessions to the student(s) enrolled.",
+        "responses": {
+          "200": {
+            "description": "Session cancelled and refunded successfully"
+          }
+        }
+      }
     },
     "/schedules/group/{parent_recurring_id}": {
       "parameters": [
-        { "name": "parent_recurring_id", "in": "path", "required": true, "schema": { "type": "string" } }
+        {
+          "name": "parent_recurring_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "Parent recurring series ID"
+        }
       ],
-      "delete": { "tags": ["Schedules"] }
+      "delete": {
+        "tags": [
+          "Schedules"
+        ],
+        "summary": "Cancel recurring series",
+        "description": "Cancels all future recurring sessions in a series and refunds remaining sessions to enrolled students.",
+        "responses": {
+          "200": {
+            "description": "Recurring group sessions cancelled and refunded successfully"
+          }
+        }
+      }
     },
     "/system/roles": {
-      "get": { "tags": ["System"] }
+      "get": {
+        "tags": [
+          "System"
+        ]
+      }
     },
     "/system/roles/create": {
-      "post": { "tags": ["System"] }
+      "post": {
+        "tags": [
+          "System"
+        ]
+      }
     },
     "/system/roles/{id}": {
       "parameters": [
-        { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
       ],
-      "patch": { "tags": ["System"] },
-      "delete": { "tags": ["System"] }
+      "patch": {
+        "tags": [
+          "System"
+        ]
+      },
+      "delete": {
+        "tags": [
+          "System"
+        ]
+      }
     },
     "/system/permissions": {
-      "get": { "tags": ["System"] }
+      "get": {
+        "tags": [
+          "System"
+        ]
+      }
     },
     "/system/permissions/create": {
-      "post": { "tags": ["System"] }
+      "post": {
+        "tags": [
+          "System"
+        ]
+      }
     },
     "/system/permissions/update/{id}": {
       "parameters": [
-        { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
       ],
-      "patch": { "tags": ["System"] }
+      "patch": {
+        "tags": [
+          "System"
+        ]
+      }
     },
     "/system/permissions/{id}": {
       "parameters": [
-        { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
       ],
-      "delete": { "tags": ["System"] }
+      "delete": {
+        "tags": [
+          "System"
+        ]
+      }
     },
     "/system/stuff/": {
-      "get": { "tags": ["System"] }
+      "get": {
+        "tags": [
+          "System"
+        ]
+      }
     },
     "/system/stuff/{id}": {
       "parameters": [
-        { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
       ],
-      "get": { "tags": ["System"] }
+      "get": {
+        "tags": [
+          "System"
+        ]
+      }
     },
     "/system/stuff/create": {
-      "post": { "tags": ["System"] }
+      "post": {
+        "tags": [
+          "System"
+        ]
+      }
     },
     "/system/stuff/update/{id}": {
       "parameters": [
-        { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
       ],
-      "patch": { "tags": ["System"] }
+      "patch": {
+        "tags": [
+          "System"
+        ]
+      }
     },
     "/system/stuff/delete/{id}": {
       "parameters": [
-        { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
       ],
-      "delete": { "tags": ["System"] }
+      "delete": {
+        "tags": [
+          "System"
+        ]
+      }
     },
     "/calendar/": {
-      "get": { "tags": ["Reports"] }
+      "get": {
+        "tags": [
+          "Reports"
+        ]
+      }
     },
     "/calendar/teachers": {
-      "get": { "tags": ["Reports"] }
+      "get": {
+        "tags": [
+          "Reports"
+        ]
+      }
     },
     "/finances/expenses": {
-      "get": { "tags": ["Reports"] }
+      "get": {
+        "tags": [
+          "Reports"
+        ]
+      }
+    },
+    "/schedules/": {
+      "get": {
+        "tags": [
+          "Schedules"
+        ],
+        "summary": "Get all sessions (Admin / Staff)",
+        "description": "Retrieve all sessions with pagination, student/teacher name search, and start/end date filtering. Includes teacher, student, and enrolled groupStudents.",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            },
+            "description": "Page number"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 10
+            },
+            "description": "Number of items per page"
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Search by student or teacher name"
+          },
+          {
+            "name": "start_date",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "description": "Filter by start date"
+          },
+          {
+            "name": "end_date",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "description": "Filter by end date"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of schedules retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "": "#/components/schemas/Schedule"
+                      }
+                    },
+                    "total": {
+                      "type": "integer"
+                    },
+                    "totalPages": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/schedules/user/schedules": {
+      "get": {
+        "tags": [
+          "Schedules"
+        ],
+        "summary": "Get logged-in user sessions (Teacher / Student)",
+        "description": "Returns sessions for the authenticated user based on their JWT token. For Teachers: returns sessions they teach. For Students: returns individual 1-on-1 sessions and group sessions where they are enrolled.",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "planned",
+                "completed",
+                "missed",
+                "cancelled"
+              ]
+            },
+            "description": "Filter by session status"
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Search by title or description"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User schedules retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "": "#/components/schemas/Schedule"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/schedules/{id}/join": {
+      "post": {
+        "tags": [
+          "Schedules"
+        ],
+        "summary": "Join Live Session (Jitsi Meet)",
+        "description": "Main entrypoint for Teacher, Student, or Admin to join a live session. Returns a signed Jitsi JWT token, dynamic roomName (bayt-session-ID), full join URL, and domain. Teachers join as Moderators (with screen share, recording, mute all controls); Students join as Participants. Also records join timestamp for attendance tracking.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Schedule / Session ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Session joined successfully; returns token, room, and URL",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "": "#/components/schemas/JoinSessionResponse"
+                },
+                "example": {
+                  "message": "JOINED_SUCCESS",
+                  "data": {
+                    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJqaXRzaSIsImlzcyI6ImJheXQtYWxxdXJhbiIsInJvb20iOiJiYXl0LXNlc3Npb24tNzkxN2YzMGQtMmI0Ny00OTRiLTk3MjEtYTQ3N2NlNGQ5OGVhIiwiY29udGV4dCI6eyJ1c2VyIjp7ImlkIjoiMTAiLCJuYW1lIjoiQWhtZWQgQWxpIiwibW9kZXJhdG9yIjp0cnVlLCJhZmZpbGlhdGlvbiI6Im93bmVyIn19fQ...",
+                    "roomName": "bayt-session-7917f30d-2b47-494b-9721-a477ce4d98ea",
+                    "url": "https://meet.bayt-alquran.net/bayt-session-7917f30d-2b47-494b-9721-a477ce4d98ea?jwt=eyJhbGciOiJIUzI1NiIsIn...",
+                    "domain": "meet.bayt-alquran.net",
+                    "isModerator": true
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Session is cancelled, completed, or missed"
+          },
+          "403": {
+            "description": "User is not enrolled or authorized to join this session"
+          },
+          "404": {
+            "description": "Session not found"
+          }
+        }
+      }
+    },
+    "/schedules/{id}/leave": {
+      "post": {
+        "tags": [
+          "Schedules"
+        ],
+        "summary": "Leave Live Session",
+        "description": "Call this endpoint when user exits the meeting room. Records leave timestamp, calculates actual attended duration in minutes, and updates attendance logs.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Schedule / Session ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Session left successfully and duration recorded"
+          }
+        }
+      }
+    },
+    "/schedules/{id}/review": {
+      "post": {
+        "tags": [
+          "Schedules"
+        ],
+        "summary": "Submit Session Review & Attendance Confirmation",
+        "description": "Allows submitting rating (1-5), review comments, and confirming teacher/student attendance.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Schedule / Session ID"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "": "#/components/schemas/SubmitReviewRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Review submitted successfully"
+          }
+        }
+      }
     }
   }
 }
