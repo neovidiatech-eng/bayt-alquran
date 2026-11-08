@@ -207,34 +207,37 @@ model teacher_subject {
 }
 
 model student {
-  id                 String          @id @default(uuid())
-  user_id            String          @unique
+  id                 String            @id @default(uuid())
+  user_id            String            @unique
   birth_date         DateTime
   gender             String
-  active             Boolean         @default(false)
+  active             Boolean           @default(false)
   planId             String?
   country            String
-  status             String          @default("pending")
-  createdAt          DateTime        @default(now())
-  updatedAt          DateTime        @updatedAt
-  sessions           Float           @default(0)
-  sessions_attended  Float           @default(0)
-  sessions_remaining Float           @default(0)
-  avgRating          Float           @default(0)
-  totalReviews       Int             @default(0)
+  status             String            @default("pending")
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+  sessions           Float             @default(0)
+  sessions_attended  Float             @default(0)
+  sessions_remaining Float             @default(0)
+  avgRating          Float             @default(0)
+  totalReviews       Int               @default(0)
   exams              exam[]
   homeworks          homework[]
   schedules          schedule[]
-  plan               Plans?          @relation(fields: [planId], references: [id], onDelete: SetNull)
-  user               user            @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  groupSchedules     ScheduleStudent[]
+  plan               Plans?            @relation(fields: [planId], references: [id], onDelete: SetNull)
+  user               user              @relation(fields: [user_id], references: [id], onDelete: Cascade)
   conversations      Conversation[]
-  parents            ParentStudent[] @relation("StudentParentRelation")
+  parents            ParentStudent[]   @relation("StudentParentRelation")
 }
 
 model schedule {
   id                  String            @id @default(uuid())
   teacherId           String
-  studentId           String
+  studentId           String?
+  isGroup             Boolean           @default(false)
+  maxStudents         Int?              @default(10)
   status              String            @default("scheduled")
   createdAt           DateTime          @default(now())
   updatedAt           DateTime          @updatedAt
@@ -252,9 +255,10 @@ model schedule {
   rescheduledToId     String?           @unique
   reviews             Review[]
   scheduleLogs        ScheduleLog?
+  groupStudents       ScheduleStudent[]
   rescheduledTo       schedule?         @relation("RescheduleHistory", fields: [rescheduledToId], references: [id])
   rescheduledFrom     schedule?         @relation("RescheduleHistory")
-  student             student           @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  student             student?          @relation(fields: [studentId], references: [id], onDelete: Cascade)
   subject             subjects          @relation(fields: [subjectId], references: [id], onDelete: Cascade)
   teacher             teacher           @relation(fields: [teacherId], references: [id], onDelete: Cascade)
   requests            session_request[]
@@ -525,11 +529,30 @@ model ParentStudent {
 model auth_log {
   id        String   @id @default(uuid())
   userId    String
-  action    String   
+  action    String
   role      String?
   createdAt DateTime @default(now())
   user      user     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([action])
+}
+
+model ScheduleStudent {
+  id         String    @id @default(uuid())
+  scheduleId String
+  studentId  String
+  status     String    @default("enrolled")
+  joinedAt   DateTime?
+  leftAt     DateTime?
+  duration   Float?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  schedule schedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  student  student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([scheduleId, studentId])
+  @@index([scheduleId])
+  @@index([studentId])
 }

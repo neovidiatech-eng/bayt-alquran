@@ -86,6 +86,12 @@ services:
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
       PORT: ${PORT:-3007}
       CORS_ORIGINS: ${CORS_ORIGINS}
+      JITSI_JWT_SECRET: ${JITSI_JWT_SECRET}
+      JITSI_APP_ID: ${JITSI_APP_ID}
+      JITSI_AUDIENCE: ${JITSI_AUDIENCE}
+      JITSI_SUB: ${JITSI_SUB}
+      JITSI_DOMAIN: ${JITSI_DOMAIN}
+      JITSI_BASE_URL: ${JITSI_BASE_URL}
     depends_on:
       postgres:
         condition: service_healthy

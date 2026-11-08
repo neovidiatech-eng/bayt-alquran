@@ -26,7 +26,7 @@
 
 ### 1. الانضمام إلى الجلسة (Join Session)
 
-يستخدم عند دخول الطالب أو المعلم إلى غرفة الحصة.
+يستخدم عند دخول الطالب أو المعلم إلى غرفة الحصة، حيث يقوم بتسجيل الحضور في النظام وتوليد رابط وجلسة Jitsi Meet المؤمنة بصلاحيات الدور (Moderator للمعلم، Participant للطالب).
 
 - **Method:** `POST`
 - **URL:** `/schedules/:id/join`
@@ -38,17 +38,90 @@
   ```json
   {
     "success": true,
-    "message": "Joined session successfully"
+    "message": "Joined session successfully",
+    "data": {
+      "token": "eyJhbGciOi...",
+      "roomName": "bayt-session-abc-123",
+      "url": "https://meet.bayt-alquran.net/bayt-session-abc-123?jwt=eyJhbGciOi...",
+      "domain": "meet.bayt-alquran.net",
+      "isModerator": true
+    }
   }
   ```
 - **Possible Errors:**
+  - `403 NOT_A_PARTICIPANT`: المستخدم ليس الطالب أو المعلم المخصص لهذه الجلسة.
   - `400 TOO_EARLY_TO_JOIN`: محاولة الدخول قبل موعد الجلسة بأكثر من 5 دقائق.
   - `400 SESSION_ALREADY_FINISHED`: الجلسة انتهت بالفعل.
+  - `400 SESSION_CANCELLED`: الجلسة تم إلغاؤها.
   - `404 SESSION_NOT_FOUND`: الجلسة غير موجودة.
+
+#### 💡 كيفية استخدام بيانات Jitsi في الـ Frontend:
+1. **الخيار الأول (فتح في نافذة جديدة - New Tab):**
+   ```javascript
+   const res = await api.post(`/schedules/${sessionId}/join`);
+   window.open(res.data.data.url, "_blank");
+   ```
+2. **الخيار الثاني (تضمين الغرفة داخل الموقع باستخدام `@jitsi/react-sdk`):**
+   ```jsx
+   import { JitsiMeeting } from '@jitsi/react-sdk';
+
+   <JitsiMeeting
+     domain={data.domain}
+     roomName={data.roomName}
+     jwt={data.token}
+     configOverwrite={{
+       startWithAudioMuted: false,
+       disableModeratorIndicator: false,
+       enableEmailInStats: false
+     }}
+     interfaceConfigOverwrite={{
+       DISABLE_JOIN_LEAVE_NOTIFICATIONS: false
+     }}
+     onReadyToClose={() => handleLeaveSession(sessionId)}
+     getIFrameRef={(iframeRef) => { iframeRef.style.height = '100%'; }}
+   />
+   ```
 
 ---
 
-### 2. مغادرة الجلسة (Leave Session)
+### 2. إنشاء الجلسات (الفردية والجماعية)
+
+يمكن للمشرف (Admin) إنشاء جلسة فردية (1-on-1) أو جلسة جماعية (Group Session):
+
+- **Method:** `POST`
+- **URL:** `/schedules/create-one`
+- **Body لجلسة فردية (Individual):**
+  ```json
+  {
+    "isGroup": false,
+    "studentId": "student-uuid",
+    "teacherId": "teacher-uuid",
+    "subject_id": "subject-uuid",
+    "title": "حصة تجويد فردية",
+    "description": "مراجعة سورة البقرة",
+    "start_time": "2026-11-06T18:00:00.000Z",
+    "notification_Time": "before 30 minutes"
+  }
+  ```
+- **Body لجلسة جماعية (Group):**
+  ```json
+  {
+    "isGroup": true,
+    "studentIds": ["student-uuid-1", "student-uuid-2", "student-uuid-3"],
+    "maxStudents": 10,
+    "teacherId": "teacher-uuid",
+    "subject_id": "subject-uuid",
+    "title": "حلقة تحفيظ جماعية",
+    "description": "حلقة جزء عم",
+    "start_time": "2026-11-06T18:00:00.000Z",
+    "notification_Time": "before 30 minutes"
+  }
+  ```
+> **ملاحظة:** في الحصص الجماعية، ينضم جميع الطلاب مع المعلم في نفس غرفة Jitsi، ويتم تسجيل وتتبع حضور كل طالب على حدة بدقة.
+
+---
+
+### 3. مغادرة الجلسة (Leave Session)
 
 يستخدم عند خروج المستخدم من الغرفة (إغلاق التاب / الضغط على زر Leave).
 - **لا ينهي الجلسة للطرف الآخر**.

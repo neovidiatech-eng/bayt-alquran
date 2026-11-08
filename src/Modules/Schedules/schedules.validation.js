@@ -7,11 +7,12 @@ export const createSchedule = {
     .keys({
       studentId: generalFeilds.id
         .messages({
-          "string.empty": "STUDENT_ID_REQUIRED",
-          "any.required": "STUDENT_ID_REQUIRED",
           "string.pattern.base": "STUDENT_ID_INVALID",
         })
-        .required(),
+        .optional(),
+      isGroup: Joi.boolean().optional(),
+      studentIds: Joi.array().items(generalFeilds.id).min(1).optional(),
+      maxStudents: Joi.number().integer().min(1).optional(),
       teacherId: generalFeilds.id
         .messages({
           "string.empty": "TEACHER_ID_REQUIRED",
@@ -42,11 +43,9 @@ export const createSchedule = {
         .required(),
       link: generalFeilds.url
         .messages({
-          "string.empty": "LINK_REQUIRED",
-          "any.required": "LINK_REQUIRED",
           "string.pattern.base": "LINK_INVALID",
         })
-        .required(),
+        .optional(),
       notes: generalFeilds.description.messages({
         "string.empty": "NOTES_REQUIRED",
         "any.required": "NOTES_REQUIRED",
@@ -73,12 +72,15 @@ export const createSchedule = {
 export const createRecurringSchedule = {
   body: Joi.object()
     .keys({
-      studentId: generalFeilds.id.required(),
+      studentId: generalFeilds.id.optional(),
+      isGroup: Joi.boolean().optional(),
+      studentIds: Joi.array().items(generalFeilds.id).min(1).optional(),
+      maxStudents: Joi.number().integer().min(1).optional(),
       teacherId: generalFeilds.id.required(),
       subject_id: generalFeilds.id.required(),
       title: generalFeilds.name.required(),
       description: generalFeilds.description.required(),
-      link: generalFeilds.url.required(),
+      link: generalFeilds.url.optional(),
       notes: generalFeilds.description,
       startTime: Joi.string()
         .regex(/^([01]\d|2[0-3]):?([0-5]\d)$/)
