@@ -1,18 +1,21 @@
 -- AlterTable
-ALTER TABLE "Plans" ADD COLUMN     "isGroup" BOOLEAN NOT NULL DEFAULT false,
-ADD COLUMN     "maxStudents" INTEGER NOT NULL DEFAULT 1,
-ADD COLUMN     "planType" TEXT NOT NULL DEFAULT 'individual';
+ALTER TABLE "Plans"
+  ADD COLUMN IF NOT EXISTS "isGroup" BOOLEAN NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS "maxStudents" INTEGER NOT NULL DEFAULT 1,
+  ADD COLUMN IF NOT EXISTS "planType" TEXT NOT NULL DEFAULT 'individual';
 
 -- AlterTable
-ALTER TABLE "schedule" ADD COLUMN     "isGroup" BOOLEAN NOT NULL DEFAULT false,
-ADD COLUMN     "maxStudents" INTEGER NOT NULL DEFAULT 1,
-ALTER COLUMN "studentId" DROP NOT NULL;
+ALTER TABLE "schedule"
+  ADD COLUMN IF NOT EXISTS "isGroup" BOOLEAN NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS "maxStudents" INTEGER NOT NULL DEFAULT 1,
+  ALTER COLUMN "studentId" DROP NOT NULL;
 
 -- AlterTable
-ALTER TABLE "teacher" ADD COLUMN     "group_hour_price" DOUBLE PRECISION DEFAULT 0;
+ALTER TABLE "teacher"
+  ADD COLUMN IF NOT EXISTS "group_hour_price" DOUBLE PRECISION DEFAULT 0;
 
 -- CreateTable
-CREATE TABLE "GroupScheduleStudent" (
+CREATE TABLE IF NOT EXISTS "GroupScheduleStudent" (
     "id" TEXT NOT NULL,
     "scheduleId" TEXT NOT NULL,
     "studentId" TEXT NOT NULL,
@@ -22,16 +25,22 @@ CREATE TABLE "GroupScheduleStudent" (
 );
 
 -- CreateIndex
-CREATE INDEX "GroupScheduleStudent_scheduleId_idx" ON "GroupScheduleStudent"("scheduleId");
+CREATE INDEX IF NOT EXISTS "GroupScheduleStudent_scheduleId_idx" ON "GroupScheduleStudent"("scheduleId");
 
 -- CreateIndex
-CREATE INDEX "GroupScheduleStudent_studentId_idx" ON "GroupScheduleStudent"("studentId");
+CREATE INDEX IF NOT EXISTS "GroupScheduleStudent_studentId_idx" ON "GroupScheduleStudent"("studentId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "GroupScheduleStudent_scheduleId_studentId_key" ON "GroupScheduleStudent"("scheduleId", "studentId");
+CREATE UNIQUE INDEX IF NOT EXISTS "GroupScheduleStudent_scheduleId_studentId_key" ON "GroupScheduleStudent"("scheduleId", "studentId");
 
 -- AddForeignKey
-ALTER TABLE "GroupScheduleStudent" ADD CONSTRAINT "GroupScheduleStudent_scheduleId_fkey" FOREIGN KEY ("scheduleId") REFERENCES "schedule"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$ BEGIN
+  ALTER TABLE "GroupScheduleStudent" ADD CONSTRAINT "GroupScheduleStudent_scheduleId_fkey"
+    FOREIGN KEY ("scheduleId") REFERENCES "schedule"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- AddForeignKey
-ALTER TABLE "GroupScheduleStudent" ADD CONSTRAINT "GroupScheduleStudent_studentId_fkey" FOREIGN KEY ("studentId") REFERENCES "student"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$ BEGIN
+  ALTER TABLE "GroupScheduleStudent" ADD CONSTRAINT "GroupScheduleStudent_studentId_fkey"
+    FOREIGN KEY ("studentId") REFERENCES "student"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
