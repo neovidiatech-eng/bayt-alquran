@@ -1,5 +1,5 @@
 # --- Stage 1: Build ---
-FROM node:20-alpine AS builder
+FROM node:22-alpine AS builder
 
 WORKDIR /app
 ARG DATABASE_URL=postgresql://postgres:postgres@localhost:5432/bait_ci
@@ -17,7 +17,7 @@ RUN npx prisma generate
 COPY . .
 
 # --- Stage 2: Runtime ---
-FROM node:20-alpine
+FROM node:22-alpine
 
 WORKDIR /app
 

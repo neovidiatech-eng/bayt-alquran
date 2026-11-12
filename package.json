@@ -32,6 +32,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@getbrevo/brevo": "^6.0.3",
     "@prisma/adapter-pg": "^7.4.2",
     "@prisma/client": "^7.4.2",
     "@socket.io/redis-adapter": "^8.3.0",
@@ -45,9 +46,11 @@
     "express": "^5.2.1",
     "express-list-endpoints": "^7.1.1",
     "express-rate-limit": "^8.3.2",
+    "firebase-admin": "^14.0.0",
     "geoip-lite": "^1.4.10",
     "google-auth-library": "^10.6.2",
     "groq-sdk": "^0.37.0",
+    "imapflow": "^1.4.2",
     "ioredis": "^5.10.1",
     "joi": "^18.0.2",
     "joi-to-swagger": "^6.2.0",
@@ -60,13 +63,9 @@
     "nodemon": "^3.1.14",
     "pg": "^8.16.3",
     "prisma": "^7.4.2",
-    "rate-limit-redis": "^5.0.0",
     "redis": "^5.10.0",
     "socket.io": "^4.8.3",
-    "swagger-ui-express": "^5.0.1",
-    "@getbrevo/brevo": "^6.0.3",
-    "firebase-admin": "^14.0.0",
-    "imapflow": "^1.4.2"
+    "swagger-ui-express": "^5.0.1"
   },
   "prisma": {
     "seed": "node prisma/seed.js"
