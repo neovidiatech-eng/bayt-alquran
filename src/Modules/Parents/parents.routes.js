@@ -19,7 +19,7 @@ const router = Router();
 router.get(
   "/admins",
   authentication(),
-  authorizeResource("users"),
+  authorizeResource("parents"),
   validation(getAllParentsSchema),
   parentController.getAllParents
 );
@@ -27,7 +27,7 @@ router.get(
 router.get(
   "/admins/:id",
   authentication(),
-  authorizeResource("users"),
+  authorizeResource("parents"),
   validation(getParentSchema),
   parentController.getParent
 );
@@ -35,7 +35,7 @@ router.get(
 router.post(
   "/admins",
   authentication(),
-  authorizeResource("users"),
+  authorizeResource("parents"),
   validation(createParentSchema),
   parentController.createParent
 );
@@ -43,7 +43,7 @@ router.post(
 router.patch(
   "/admins/:id",
   authentication(),
-  authorizeResource("users"),
+  authorizeResource("parents"),
   validation(updateParentSchema),
   parentController.updateParent
 );
@@ -51,13 +51,13 @@ router.patch(
 router.delete(
   "/admins/:id",
   authentication(),
-  authorizeResource("users"),
+  authorizeResource("parents"),
   validation(deleteParentSchema),
   parentController.deleteParent
 );
 
 // Parent routes - require authentication and parent role
-router.use(authentication(), isParent());
+router.use(authentication());
 
 router.get("/students", parentController.getLinkedStudents);
 

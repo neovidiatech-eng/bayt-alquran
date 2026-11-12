@@ -82,10 +82,8 @@ export function setupSwagger(app, routerMapping = new Map()) {
 
   const rawRoutes = [];
   const routerStack = app.router ? app.router.stack : app._router.stack;
-  console.log(`Total layers in stack: ${routerStack.length}`);
   routerStack.forEach((layer, i) => {
     const slices = getSlices(layer);
-    console.log(`Layer ${i} (${layer.name}): found ${slices.length} slices`);
     rawRoutes.push(...slices);
   });
 
@@ -167,8 +165,6 @@ export function setupSwagger(app, routerMapping = new Map()) {
       });
   });
 
-  console.log(`Swagger paths generated: ${Object.keys(paths).length}`);
-
   return {
     openapi: "3.0.0",
     info: {
@@ -178,7 +174,7 @@ export function setupSwagger(app, routerMapping = new Map()) {
     },
     servers: [
       {
-        url: "http://46.21.250.194:3001",
+        url: "http://46.21.250.194:3009",
         description: "Production Server"
       },
       {

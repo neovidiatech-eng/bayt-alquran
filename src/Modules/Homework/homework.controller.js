@@ -4,6 +4,10 @@ import {
   successResponse,
 } from "../../Utils/Response.js";
 import * as db from "../../database/dbService.js";
+import {
+  getModeratorStudentIds,
+  buildStudentExamFilter,
+} from "../../Utils/Permissions/permissions.js";
 
 export const createHomework = asyncHandler(async (req, res, next) => {
   const { title, description, dueDate, studentId, subjectId, status } =
@@ -30,6 +34,11 @@ export const createHomework = asyncHandler(async (req, res, next) => {
     !["admin", "super_admin", "teacher"].includes(req.user.role?.name)
   ) {
     return errorResponse({ req, next, message: "ONLY_TEACHERS_ADMINS_CREATE", status: 403 });
+  }
+
+  const assignedStudentIds = await getModeratorStudentIds(req.user);
+  if (assignedStudentIds !== null && !assignedStudentIds.includes(studentId)) {
+    return errorResponse({ req, next, message: "FORBIDDEN", status: 403 });
   }
 
   // If teacher, assign automatically, if admin we might need teacherId passed. Let's use user's teacher id or if not, get it from body if admin.
@@ -77,6 +86,16 @@ export const updateHomework = asyncHandler(async (req, res, next) => {
     return errorResponse({ req, next, message: "UNAUTHORIZED_UPDATE", status: 403 });
   }
 
+  const assignedStudentIds = await getModeratorStudentIds(req.user);
+  if (assignedStudentIds !== null) {
+    if (
+      !assignedStudentIds.includes(homeworkExists.studentId) ||
+      (studentId && !assignedStudentIds.includes(studentId))
+    ) {
+      return errorResponse({ req, next, message: "FORBIDDEN", status: 403 });
+    }
+  }
+
   let finalDueDate = dueDate;
   if (dueDate) {
     finalDueDate = new Date(dueDate);
@@ -118,6 +137,11 @@ export const deleteHomework = asyncHandler(async (req, res, next) => {
     return errorResponse({ req, next, message: "UNAUTHORIZED_DELETE", status: 403 });
   }
 
+  const assignedStudentIds = await getModeratorStudentIds(req.user);
+  if (assignedStudentIds !== null && !assignedStudentIds.includes(homeworkExists.studentId)) {
+    return errorResponse({ req, next, message: "FORBIDDEN", status: 403 });
+  }
+
   await db.deleteOne({
     model: "homework",
     where: { id },
@@ -148,18 +172,30 @@ export const getHomework = asyncHandler(async (req, res, next) => {
     return errorResponse({ req, next, message: "HOMEWORK_NOT_FOUND", status: 404 });
   }
 
+  const assignedStudentIds = await getModeratorStudentIds(req.user);
+  if (assignedStudentIds !== null && !assignedStudentIds.includes(homework.studentId)) {
+    return errorResponse({ req, next, message: "FORBIDDEN", status: 403 });
+  }
+
   return successResponse({ res, req, message: "FETCH_SUCCESS", data: homework, status: 200 });
 });
 export const getStudentHomework = asyncHandler(async (req, res, next) => {
+  const assignedStudentIds = await getModeratorStudentIds(req.user);
   const student = req.user.student;
-  if(!student){
+  if (!student && assignedStudentIds === null) {
     return errorResponse({ req, next, message: "STUDENT_NOT_FOUND", status: 404 });
   }
 
-  const homework = await db.findMany({
+  const where = {};
+  if (student) {
+    where.studentId = student.id;
+  } else if (assignedStudentIds !== null) {
+    where.studentId = { in: assignedStudentIds };
+  }
 
+  const homework = await db.findMany({
     model: "homework",
-    where: { studentId: student?.id },
+    where,
     include: {
       student: { include: { user: true } },
       teacher: { include: { user: true } },
@@ -184,11 +220,18 @@ export const getAllHomework = asyncHandler(async (req, res, next) => {
   if (teacherId) condition.teacherId = teacherId;
   if (status) condition.status = status;
 
+  const assignedStudentIds = await getModeratorStudentIds(req.user);
+
   // Role based filtering
   if (req.user.role?.name === "student") {
     condition.studentId = req.user.student?.id;
   } else if (req.user.role?.name === "teacher" && !teacherId) {
     condition.teacherId = req.user.teacher?.id;
+  } else if (assignedStudentIds !== null) {
+    Object.assign(
+      condition,
+      buildStudentExamFilter(assignedStudentIds, studentId),
+    );
   }
 
   const { items, pagination } = await db.findManyWithPaginationAndCount({

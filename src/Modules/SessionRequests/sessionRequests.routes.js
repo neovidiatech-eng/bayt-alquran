@@ -5,6 +5,7 @@ import { validation } from "../../Middlewares/Validation.js";
 import { authentication } from "../../Middlewares/Authentication.js";
 import { authorizeResource, authorize } from "../../Middlewares/AuthorizationMiddleware.js";
 import { PERMISSIONS_V2 } from "../../Constants/permissions.constants.js";
+import { mutationRateLimiter } from "../../Middlewares/RateLimiter.js";
 
 const router = Router();
 
@@ -12,6 +13,7 @@ const router = Router();
 router.post(
   "/",
   authentication(),
+  mutationRateLimiter,
   authorizeResource("requests"),
   validation(sessionRequestsValidation.createRequest),
   sessionRequestsController.createRequest,

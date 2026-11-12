@@ -1,0 +1,570 @@
+{
+	"info": {
+		"_postman_id": "wa3y-backend-postman-collection",
+		"name": "Wa3y Backend API Collection",
+		"description": "Postman collection for Wa3y Backend API, including Authentication, Moderator Signup & Accept/Reject Cycle, Teacher Requests, Students, Schedules, and System APIs.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:3009",
+			"type": "string"
+		},
+		{
+			"key": "token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "userId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "moderatorId",
+			"value": "",
+			"type": "string"
+		}
+	],
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{token}}",
+				"type": "string"
+			}
+		]
+	},
+	"item": [
+		{
+			"name": "Moderator Management & Requests Cycle",
+			"item": [
+				{
+					"name": "Public - Sign Up Moderator",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Ahmed Moderator\",\n  \"email\": \"moderator@example.com\",\n  \"password\": \"Password123!\",\n  \"confirmPassword\": \"Password123!\",\n  \"codeCountry\": \"+20\",\n  \"phone\": \"1012345678\",\n  \"gender\": \"male\",\n  \"country\": \"Egypt\",\n  \"nationality\": \"Egyptian\",\n  \"timezone\": \"Africa/Cairo\",\n  \"city\": \"Cairo\",\n  \"age\": 28,\n  \"notes\": \"Experienced online moderator\",\n  \"additionalData\": {\n    \"whatsappNumber\": \"+201012345678\",\n    \"birthDate\": \"1996-05-15\",\n    \"qualification\": \"Bachelor of Science\",\n    \"hasPersonalLaptop\": true,\n    \"governorate\": \"Cairo\",\n    \"maritalStatus\": \"Single\",\n    \"hasCurrentJob\": false,\n    \"hasFreeTimeFrom3To8\": true,\n    \"dailyFreeTimeHours\": \"5\",\n    \"agreedToWorkConditions\": true\n  }\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/moderator/sign-up-moderator",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"moderator",
+								"sign-up-moderator"
+							]
+						},
+						"description": "Public signup endpoint for moderators. Sends OTP email and creates a pending user snapshot."
+					},
+					"response": []
+				},
+				{
+					"name": "Admin - Get Pending Moderator Requests",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/moderator/requests?page=1&limit=20",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"moderator",
+								"requests"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "20"
+								}
+							]
+						},
+						"description": "Lists all pending moderator signup applications."
+					},
+					"response": []
+				},
+				{
+					"name": "Admin - Approve / Accept Moderator Request",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"studentIds\": []\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/moderator/requests/{{userId}}/approve",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"moderator",
+								"requests",
+								"{{userId}}",
+								"approve"
+							]
+						},
+						"description": "Approves a pending moderator request, assigns the MODERATOR role, activates the user, and links students if provided."
+					},
+					"response": []
+				},
+				{
+					"name": "Admin - Reject Moderator Request",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/moderator/requests/{{userId}}/reject",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"moderator",
+								"requests",
+								"{{userId}}",
+								"reject"
+							]
+						},
+						"description": "Rejects and removes a pending moderator application."
+					},
+					"response": []
+				},
+				{
+					"name": "Admin - Change Moderator Status (Active/Inactive)",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": \"{{moderatorId}}\",\n  \"status\": \"active\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/moderator/change-status",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"moderator",
+								"change-status"
+							]
+						},
+						"description": "Toggles active/inactive status for an existing moderator."
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Moderators",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/moderator?page=1&limit=10",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"moderator"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						},
+						"description": "Fetch list of all active moderators."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Moderator By ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/moderator/{{moderatorId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"moderator",
+								"{{moderatorId}}"
+							]
+						},
+						"description": "Get detailed info for a single moderator."
+					},
+					"response": []
+				},
+				{
+					"name": "Create Moderator (Direct Admin Creation)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Direct Moderator\",\n  \"email\": \"direct_mod@example.com\",\n  \"password\": \"Password123!\",\n  \"codeCountry\": \"+20\",\n  \"phone\": \"1099887766\",\n  \"age\": 30,\n  \"gender\": \"male\",\n  \"studentIds\": []\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/moderator",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"moderator"
+							]
+						},
+						"description": "Admin endpoint to directly create and activate a moderator without signup approval."
+					},
+					"response": []
+				},
+				{
+					"name": "Update Moderator",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Updated Moderator Name\",\n  \"status\": \"active\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/moderator/{{moderatorId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"moderator",
+								"{{moderatorId}}"
+							]
+						},
+						"description": "Update moderator profile details or assigned students."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Moderator",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/moderator/{{moderatorId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"moderator",
+								"{{moderatorId}}"
+							]
+						},
+						"description": "Delete a moderator record."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Moderator Assigned Students",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/moderator/students",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"moderator",
+								"students"
+							]
+						},
+						"description": "Get students assigned to the logged-in moderator."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Authentication",
+			"item": [
+				{
+					"name": "Sign In (Login)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"if (jsonData && jsonData.data && jsonData.data.token) {",
+									"    pm.environment.set(\"token\", jsonData.data.token);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"Password123!\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/sign-in",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"sign-in"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Verify Account (OTP Verification)",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"moderator@example.com\",\n  \"otp\": \"123456\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/verify-account",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"verify-account"
+							]
+						},
+						"description": "Verifies the email OTP. For moderators, triggers creation of pending moderator record."
+					},
+					"response": []
+				},
+				{
+					"name": "Resend OTP",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"moderator@example.com\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/resend-otp",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"resend-otp"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Teacher Signup Requests",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/auth/teacher-requests?page=1&limit=20",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"teacher-requests"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Approve Teacher Request",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"currency_id\": \"currency-id-here\",\n  \"subject_ids\": []\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/teacher-requests/{{userId}}/approve",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"teacher-requests",
+								"{{userId}}",
+								"approve"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Reject Teacher Request",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/auth/teacher-requests/{{userId}}/reject",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"teacher-requests",
+								"{{userId}}",
+								"reject"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Moderator Requests (Auth Alias)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/auth/moderator-requests?page=1&limit=20",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"moderator-requests"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Approve Moderator Request (Auth Alias)",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"studentIds\": []\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/moderator-requests/{{userId}}/approve",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"moderator-requests",
+								"{{userId}}",
+								"approve"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Reject Moderator Request (Auth Alias)",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/auth/moderator-requests/{{userId}}/reject",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"moderator-requests",
+								"{{userId}}",
+								"reject"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}

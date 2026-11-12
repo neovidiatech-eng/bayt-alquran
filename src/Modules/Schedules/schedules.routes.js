@@ -10,7 +10,9 @@ const router = Router();
 
 // Admin/Staff: Create and get sessions
 router.get("/", authentication(), authorizeResource("sessions"), scheduleController.getAllSchedules);
-router.get("/user/schedules", authentication(), authorizeResource("sessions"), scheduleController.getUserSchedules);
+router.get("/user/schedules", authentication(), authorize(PERMISSIONS_V2.SESSIONS.READ_USER_SCHEDULES), scheduleController.getUserSchedules);
+router.get("/teacher/:teacherId", authentication(), authorizeResource("sessions"), validation(schema.getTeacherSchedules), scheduleController.getTeacherSchedules);
+router.get("/student/:studentId", authentication(), authorizeResource("sessions"), validation(schema.getStudentSchedules), scheduleController.getStudentSchedules);
 router.post(
   "/create-one",
   authentication(),
@@ -25,6 +27,16 @@ router.post(
   validation(schema.createRecurringSchedule),
   scheduleController.createRecurringSchedule,
 );
+
+router.post(
+  "/sync-statuses",
+  authentication(),
+  authorizeResource("sessions"),
+  scheduleController.syncSessionStatuses,
+);
+
+
+
 
 router.delete(
   "/:id",

@@ -1,27 +1,31 @@
 import { Router } from "express";
 import { authentication } from "../../../Middlewares/Authentication.js";
 import { validation } from "../../../Middlewares/Validation.js";
-import { authorizeResource } from "../../../Middlewares/AuthorizationMiddleware.js";
+import {
+  authorize,
+  authorizeResource,
+} from "../../../Middlewares/AuthorizationMiddleware.js";
 import * as subjectsController from "./subjects.controller.js";
 import {
   createSubjectSchema,
   updateSubjectSchema,
   deleteSubjectSchema,
 } from "./subjects.validation.js";
+import { PERMISSIONS_V2 } from "../../../Constants/permissions.constants.js";
 
 const router = Router();
 
 router.get(
   "/",
   authentication(),
-  authorizeResource("subjects"),
+  authorize(PERMISSIONS_V2.SUBJECTS.READ),
   subjectsController.getSubjects,
 );
 
 router.post(
   "/create",
   authentication(),
-  authorizeResource("subjects"),
+  authorize(PERMISSIONS_V2.SUBJECTS.CREATE),
   validation(createSubjectSchema),
   subjectsController.createSubject,
 );
@@ -29,7 +33,7 @@ router.post(
 router.patch(
   "/update/:id",
   authentication(),
-  authorizeResource("subjects"),
+  authorize(PERMISSIONS_V2.SUBJECTS.UPDATE),
   validation(updateSubjectSchema),
   subjectsController.updateSubject,
 );
@@ -37,7 +41,7 @@ router.patch(
 router.delete(
   "/delete/:id",
   authentication(),
-  authorizeResource("subjects"),
+  authorize(PERMISSIONS_V2.SUBJECTS.DELETE),
   validation(deleteSubjectSchema),
   subjectsController.deleteSubject,
 );

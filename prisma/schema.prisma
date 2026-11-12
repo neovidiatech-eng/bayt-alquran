@@ -7,36 +7,46 @@ datasource db {
 }
 
 model user {
-  id                   String                  @id @default(uuid())
-  email                String                  @unique
-  password             String?
-  name                 String?
-  phone                String?                 @unique
-  createdAt            DateTime                @default(now())
-  updatedAt            DateTime                @updatedAt
-  confirmAt            DateTime?
-  roleId               String?
-  code_country         String?
-  status               String                  @default("pending")
-  googleId             String?                 @unique
-  provider             String                  @default("local")
-  timezone             String?                 @default("Africa/Cairo")
-  reviewsReceived      Review[]                @relation("ReviewsReceived")
-  reviewsGiven         Review[]                @relation("ReviewsGiven")
-  subscriptions        Subscription[]
-  wallet               Wallet[]
-  withdrawalRequests   WithdrawalRequest[]
-  sessionRequests      session_request[]
-  student              student?
-  stuff                stuff?
-  subscriptionRequests subscription_requests[]
-  teacher              teacher?
-  role                 role?                   @relation(fields: [roleId], references: [id])
-  messages             Message[]
-  conversations        Conversation[]          @relation("TeacherConversations")
-  conversationsStudent Conversation[]          @relation("StudentConversations")
-  parentStudents       ParentStudent[]         @relation("ParentRelation")
-  authLogs             auth_log[]
+  id                            String                  @id @default(uuid())
+  email                         String                  @unique
+  password                      String?
+  name                          String?
+  phone                         String?
+  createdAt                     DateTime                @default(now())
+  updatedAt                     DateTime                @updatedAt
+  confirmAt                     DateTime?
+  roleId                        String?
+  code_country                  String?
+  status                        String                  @default("pending")
+  googleId                      String?                 @unique
+  provider                      String                  @default("local")
+  timezone                      String?                 @default("Africa/Cairo")
+  country                       String?
+  nationality                   String?
+  fcmToken                      String?                 @default("")
+  age                           Int?                    @default(0)
+  city                          String?                 @default("unknown")
+  additionalData                Json?                   @map("additional_data")
+  conversationsStudent          Conversation[]          @relation("StudentConversations")
+  conversations                 Conversation[]          @relation("TeacherConversations")
+  messages                      Message[]
+  parentStudents                ParentStudent[]         @relation("ParentRelation")
+  reviewsReceived               Review[]                @relation("ReviewsReceived")
+  reviewsGiven                  Review[]                @relation("ReviewsGiven")
+  subscriptions                 Subscription[]
+  wallet                        Wallet[]
+  withdrawalRequests            WithdrawalRequest[]
+  authLogs                      auth_log[]
+  sessionRequests               session_request[]
+  student                       student?
+  stuff                         stuff?
+  subscriptionRequests          subscription_requests[]
+  teacher                       teacher?
+  supervisorViolations          TeacherViolation[]      @relation("SupervisorViolations")
+  role                          role?                   @relation(fields: [roleId], references: [id])
+  moderator                     moderator?
+  supervisorModeratorViolations moderatorViolation[]    @relation("ModeratorViolations")
+  moderatorViolations           moderatorViolation[]
 
   @@index([email])
   @@index([googleId])
@@ -49,18 +59,17 @@ model role {
   updatedAt       DateTime         @updatedAt
   rolePermissions rolePermission[]
   stuff           stuff[]
-  teachers        teacher[]
   users           user[]
 }
 
 model permission {
   id              String           @id @default(uuid())
   name            String           @unique
-  resource        String           @default("")
-  method          String           @default("")
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
   code            String?          @unique
+  method          String           @default("")
+  resource        String           @default("")
   rolePermissions rolePermission[]
 
   @@index([name])
@@ -94,9 +103,9 @@ model currency {
   Plans              Plans[]
   subscriptions      Subscription[]
   wallets            Wallet[]
+  withdrawalRequests WithdrawalRequest[]
   expenses           expenses[]
   teachers           teacher[]
-  withdrawalRequests WithdrawalRequest[]
 
   @@index([name_en])
   @@index([name_ar])
@@ -112,13 +121,17 @@ model Plans {
   duration             Int
   features             String[]
   currencyId           String?
+  color                String?                 @default("#369589")
+  isGroup              Boolean                 @default(false)
+  maxStudents          String                  @default("1")
+  planType             String                  @default("individual")
   createdAt            DateTime                @default(now())
   updatedAt            DateTime                @updatedAt
   active               Boolean                 @default(false)
   bestSeller           Boolean                 @default(false)
   sessionsCount        Float                   @default(0)
   sessionTime          Float                   @default(0)
-  currency             currency?               @relation(fields: [currencyId], references: [id], onDelete: SetNull)
+  currency             currency?               @relation(fields: [currencyId], references: [id])
   subscriptions        Subscription[]
   students             student[]
   subscriptionRequests subscription_requests[]
@@ -135,11 +148,11 @@ model subjects {
   color           String
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
+  courses         course[]
   exams           exam[]
   homeworks       homework[]
   schedules       schedule[]
   teacherSubjects teacher_subject[]
-  courses         course[]
 
   @@index([name_en])
   @@index([name_ar])
@@ -170,26 +183,31 @@ model stuff {
 }
 
 model teacher {
-  id              String            @id @default(uuid())
-  user_id         String            @unique
-  currencyId      String?
-  hour_price      Float
-  meeting_link    String?
-  gender          String
-  active          Boolean           @default(false)
-  roleId          String?
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
-  avgRating       Float             @default(0)
-  totalReviews    Int               @default(0)
-  exams           exam[]
-  homeworks       homework[]
-  schedules       schedule[]
-  currency        currency?         @relation(fields: [currencyId], references: [id], onDelete: SetNull)
-  role            role?             @relation(fields: [roleId], references: [id], onDelete: SetNull)
-  user            user              @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  teacherSubjects teacher_subject[]
-  conversations   Conversation[]
+  id               String            @id @default(uuid())
+  user_id          String            @unique
+  currencyId       String?
+  hour_price       Float?            @default(0)
+  group_hour_price Float?            @default(0)
+  gender           String
+  active           Boolean           @default(false)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  avgRating        Float             @default(0)
+  totalReviews     Int               @default(0)
+  meeting_link     String?
+  approved         Boolean           @default(false)
+  conversations    Conversation[]
+  exams            exam[]
+  homeworks        homework[]
+  schedules        schedule[]
+  studentTeachers  student_teacher[]
+  currency         currency?         @relation(fields: [currencyId], references: [id])
+
+  user                  user                   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  teacherSubjects       teacher_subject[]
+  violations            TeacherViolation[]
+  students              student[]              @relation("TeacherStudentRelation")
+  dailyQuranRecitations DailyQuranRecitation[]
 }
 
 model teacher_subject {
@@ -207,67 +225,110 @@ model teacher_subject {
 }
 
 model student {
-  id                 String            @id @default(uuid())
-  user_id            String            @unique
-  birth_date         DateTime
-  gender             String
-  active             Boolean           @default(false)
-  planId             String?
-  country            String
-  status             String            @default("pending")
-  createdAt          DateTime          @default(now())
-  updatedAt          DateTime          @updatedAt
-  sessions           Float             @default(0)
-  sessions_attended  Float             @default(0)
-  sessions_remaining Float             @default(0)
-  avgRating          Float             @default(0)
-  totalReviews       Int               @default(0)
-  exams              exam[]
-  homeworks          homework[]
-  schedules          schedule[]
-  groupSchedules     ScheduleStudent[]
-  plan               Plans?            @relation(fields: [planId], references: [id], onDelete: SetNull)
-  user               user              @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  conversations      Conversation[]
-  parents            ParentStudent[]   @relation("StudentParentRelation")
+  id                    String                 @id @default(uuid())
+  user_id               String                 @unique
+  birth_date            DateTime
+  gender                String
+  active                Boolean                @default(false)
+  planId                String?
+  country               String
+  status                String                 @default("pending")
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  sessions              Float                  @default(0)
+  sessions_attended     Float                  @default(0)
+  sessions_remaining    Float                  @default(0)
+  points                Int                    @default(0)
+  avgRating             Float                  @default(0)
+  totalReviews          Int                    @default(0)
+  paid                  String?                @default("pending")
+  conversations         Conversation[]
+  parents               ParentStudent[]        @relation("StudentParentRelation")
+  exams                 exam[]
+  homeworks             homework[]
+  schedules             schedule[]
+  plan                  Plans?                 @relation(fields: [planId], references: [id])
+  rankId                String?
+  rank                  Rank?                  @relation(fields: [rankId], references: [id])
+  user                  user                   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  studentTeachers       student_teacher[]
+  teachers              teacher[]              @relation("TeacherStudentRelation")
+  groupSchedules        GroupScheduleStudent[]
+  dailyQuranRecitations DailyQuranRecitation[]
+  studentModerators     student_moderator[]
+}
+
+model student_teacher {
+  id         String   @id @default(uuid())
+  studentId  String
+  teacherId  String
+  hour_price Float?   @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  student    student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  teacher    teacher  @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, teacherId])
+  @@index([studentId])
+  @@index([teacherId])
 }
 
 model schedule {
-  id                  String            @id @default(uuid())
+  id                  String                 @id @default(uuid())
   teacherId           String
   studentId           String?
-  isGroup             Boolean           @default(false)
-  maxStudents         Int?              @default(10)
-  status              String            @default("scheduled")
-  createdAt           DateTime          @default(now())
-  updatedAt           DateTime          @updatedAt
+  status              String                 @default("scheduled")
+  createdAt           DateTime               @default(now())
+  updatedAt           DateTime               @updatedAt
   notes               String?
   description         String?
   link                String
-  title               String
+  title               String?
   end_time            DateTime
   start_time          DateTime
   day_of_week         String?
-  is_recurring        Boolean           @default(false)
+  is_recurring        Boolean                @default(false)
+  isGroup             Boolean                @default(false)
+  maxStudents         String                 @default("1")
   parent_recurring_id String?
-  subjectId           String            @default("null")
-  rescheduledFromId   String?           @unique
-  rescheduledToId     String?           @unique
+  subjectId           String                 @default("null")
+  rescheduledFromId   String?                @unique
+  rescheduledToId     String?                @unique
   reviews             Review[]
   scheduleLogs        ScheduleLog?
-  groupStudents       ScheduleStudent[]
-  rescheduledTo       schedule?         @relation("RescheduleHistory", fields: [rescheduledToId], references: [id])
-  rescheduledFrom     schedule?         @relation("RescheduleHistory")
-  student             student?          @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  subject             subjects          @relation(fields: [subjectId], references: [id], onDelete: Cascade)
-  teacher             teacher           @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  rescheduledTo       schedule?              @relation("RescheduleHistory", fields: [rescheduledToId], references: [id])
+  rescheduledFrom     schedule?              @relation("RescheduleHistory")
+  student             student?               @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  subject             subjects               @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  teacher             teacher                @relation(fields: [teacherId], references: [id], onDelete: Cascade)
   requests            session_request[]
+  violations          TeacherViolation[]
+  groupStudents       GroupScheduleStudent[]
 
   @@index([teacherId])
   @@index([studentId])
   @@index([start_time])
   @@index([end_time])
   @@index([status])
+}
+
+model GroupScheduleStudent {
+  id         String    @id @default(uuid())
+  scheduleId String
+  studentId  String
+  status     String    @default("pending")
+  isAttended Boolean   @default(false)
+  joinTime   DateTime?
+  leaveTime  DateTime?
+  duration   Float?    @default(0)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  schedule   schedule  @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  student    student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([scheduleId, studentId])
+  @@index([scheduleId])
+  @@index([studentId])
 }
 
 model session_request {
@@ -319,7 +380,7 @@ model expenses {
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
   transactions Transaction[]
-  currency     currency?     @relation(fields: [currencyId], references: [id], onDelete: SetNull)
+  currency     currency?     @relation(fields: [currencyId], references: [id])
 }
 
 model homework {
@@ -387,7 +448,7 @@ model Wallet {
   currencyId   String?
   userId       String?
   transactions Transaction[]
-  currency     currency?     @relation(fields: [currencyId], references: [id], onDelete: SetNull)
+  currency     currency?     @relation(fields: [currencyId], references: [id])
   user         user?         @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
@@ -396,12 +457,12 @@ model WithdrawalRequest {
   teacherId    String
   amount       Float
   status       String        @default("pending")
-  currencyId   String?
-  currency     currency?     @relation(fields: [currencyId], references: [id], onDelete: Cascade)
   adminNotes   String?
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
+  currencyId   String?
   transactions Transaction[]
+  currency     currency?     @relation(fields: [currencyId], references: [id], onDelete: Cascade)
   teacher      user          @relation(fields: [teacherId], references: [id], onDelete: Cascade)
 
   @@index([teacherId])
@@ -414,14 +475,15 @@ model Transaction {
   type                String
   amount              Float
   status              String             @default("completed")
-  reason              String?
+  reason              Json?
   createdAt           DateTime           @default(now())
   expenseId           String?
   subscriptionId      String?
   withdrawalRequestId String?
+  deleted             Boolean            @default(false)
   expense             expenses?          @relation(fields: [expenseId], references: [id], onDelete: SetNull)
   subscription        Subscription?      @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
-  wallet              Wallet             @relation(fields: [walletId], references: [id], onDelete: Restrict)
+  wallet              Wallet             @relation(fields: [walletId], references: [id], onDelete: Cascade)
   withdrawalRequest   WithdrawalRequest? @relation(fields: [withdrawalRequestId], references: [id], onDelete: SetNull)
 }
 
@@ -460,17 +522,16 @@ model Review {
 }
 
 model Conversation {
-  id        String    @id @default(uuid())
-  teacherId String
-  studentId String
-  teacher   teacher   @relation(fields: [teacherId], references: [id], onDelete: Cascade)
-  student   student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  messages  Message[]
-
-  userTeacher   user?   @relation("TeacherConversations", fields: [teacherUserId], references: [id])
-  userStudent   user?   @relation("StudentConversations", fields: [studentUserId], references: [id])
+  id            String    @id @default(uuid())
+  teacherId     String
+  studentId     String
   teacherUserId String?
   studentUserId String?
+  student       student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  userStudent   user?     @relation("StudentConversations", fields: [studentUserId], references: [id], onDelete: SetNull)
+  teacher       teacher   @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  userTeacher   user?     @relation("TeacherConversations", fields: [teacherUserId], references: [id], onDelete: SetNull)
+  messages      Message[]
 
   @@unique([teacherId, studentId])
 }
@@ -501,25 +562,25 @@ model course {
   pdfurl       String?
   subjectId    String
   attatchments Json?
-  subject      subjects @relation(fields: [subjectId], references: [id], onDelete: Cascade)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+  subject      subjects @relation(fields: [subjectId], references: [id], onDelete: Cascade)
 }
 
 model Setting {
-  id        String   @id @default(uuid())
-  discounts Json?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id               String   @id @default(uuid())
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  paidSessionCount Int?     @default(3) @map("paid_session_count")
+  studentCanJoin   Boolean? @default(false) @map("student_can_join")
 }
 
 model ParentStudent {
   parentId  String
   studentId String
   createdAt DateTime @default(now())
-
-  parent  user    @relation("ParentRelation", fields: [parentId], references: [id], onDelete: Cascade)
-  student student @relation("StudentParentRelation", fields: [studentId], references: [id], onDelete: Cascade)
+  parent    user     @relation("ParentRelation", fields: [parentId], references: [id], onDelete: Cascade)
+  student   student  @relation("StudentParentRelation", fields: [studentId], references: [id], onDelete: Cascade)
 
   @@id([parentId, studentId])
   @@index([parentId])
@@ -538,21 +599,111 @@ model auth_log {
   @@index([action])
 }
 
-model ScheduleStudent {
-  id         String    @id @default(uuid())
-  scheduleId String
-  studentId  String
-  status     String    @default("enrolled")
-  joinedAt   DateTime?
-  leftAt     DateTime?
-  duration   Float?
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
+model InfractionItem {
+  id                     String               @id @default(uuid())
+  title_en               String
+  title_ar               String
+  description            String?
+  defaultType            String               @default("warning")
+  defaultDeductionAmount Float                @default(0)
+  active                 Boolean              @default(true)
+  createdAt              DateTime             @default(now())
+  updatedAt              DateTime             @updatedAt
+  violations             TeacherViolation[]
+  moderatorViolations    moderatorViolation[]
+}
 
-  schedule schedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
-  student  student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+model TeacherViolation {
+  id               String          @id @default(uuid())
+  teacherId        String
+  supervisorId     String
+  scheduleId       String?
+  infractionItemId String?
+  type             String          @default("warning")
+  deductionAmount  Float           @default(0)
+  reason           String?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  teacher          teacher         @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  supervisor       user            @relation("SupervisorViolations", fields: [supervisorId], references: [id], onDelete: Cascade)
+  schedule         schedule?       @relation(fields: [scheduleId], references: [id], onDelete: SetNull)
+  infractionItem   InfractionItem? @relation(fields: [infractionItemId], references: [id], onDelete: SetNull)
 
-  @@unique([scheduleId, studentId])
+  @@index([teacherId])
+  @@index([supervisorId])
   @@index([scheduleId])
-  @@index([studentId])
+}
+
+model Rank {
+  id             String    @id @default(uuid())
+  name_en        String    @unique
+  name_ar        String    @unique
+  description_en String?
+  description_ar String?
+  color          String?   @default("#369589")
+  icon           String?
+  minSessions    Int       @default(0)
+  minPoints      Int       @default(0)
+  active         Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  students       student[]
+}
+
+model DailyQuranRecitation {
+  id        String   @id @default(uuid())
+  studentId String
+  teacherId String
+  status    String   @default("pending")
+  startPage Int      @default(1)
+  endPage   Int      @default(1)
+  surah     String
+  dueDate   DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  student   student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  teacher   teacher  @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+}
+
+model moderator {
+  id                  String               @id @default(uuid())
+  userId              String               @unique
+  gender              String               @default("male")
+  createdAt           DateTime             @default(now())
+  salary              Float?               @default(0)
+  status              String               @default("active")
+  updatedAt           DateTime             @updatedAt
+  user                user                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  studentModerators   student_moderator[]
+  moderatorViolations moderatorViolation[]
+}
+
+model student_moderator {
+  id          String    @id @default(uuid())
+  studentId   String
+  moderatorId String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  student     student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  moderator   moderator @relation(fields: [moderatorId], references: [id], onDelete: Cascade)
+}
+
+model moderatorViolation {
+  id               String          @id @default(uuid())
+  moderatorId      String
+  supervisorId     String
+  infractionItemId String?
+  type             String          @default("warning")
+  deductionAmount  Float           @default(0)
+  reason           String?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  moderator        moderator       @relation(fields: [moderatorId], references: [id], onDelete: Cascade)
+  supervisor       user            @relation("ModeratorViolations", fields: [supervisorId], references: [id], onDelete: Cascade)
+  infractionItem   InfractionItem? @relation(fields: [infractionItemId], references: [id], onDelete: SetNull)
+  user             user?           @relation(fields: [userId], references: [id])
+  userId           String?
+
+  @@index([moderatorId])
+  @@index([supervisorId])
 }

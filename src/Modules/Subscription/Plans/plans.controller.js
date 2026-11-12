@@ -41,7 +41,12 @@ export const createPlan = asyncHandler(async (req, res, next) => {
     features,
     sessionTime,
     currencyId,
+    color,
+    isGroup,
+    maxStudents,
+    planType,
   } = req.body;
+  const unlimitStudents = (maxStudents === "0" || maxStudents === 0 || maxStudents === "unlimited") ? "unlimited" : String(maxStudents ?? "1");
   const existPlan = await db.findFirst({
     model: "Plans",
     where: {
@@ -79,12 +84,16 @@ export const createPlan = asyncHandler(async (req, res, next) => {
       price: String(price),
       duration,
       sessionsCount,
-      description,
+      description: description || "",
       active: active || false,
       bestSeller: bestSeller || false,
-      features,
+      features: features || [],
       sessionTime: parseInt(sessionTime),
       currencyId,
+      ...(color && { color }),
+      isGroup: isGroup ?? false,
+      maxStudents: unlimitStudents,
+      planType: planType || (isGroup ? "group" : "individual"),
     },
   });
   if (!plan) {
@@ -119,6 +128,10 @@ export const updatePlan = asyncHandler(async (req, res, next) => {
     features,
     sessionTime,
     currencyId,
+    color,
+    isGroup,
+    maxStudents,
+    planType,
   } = req.body;
 
   const plan = await db.findOne({
@@ -135,7 +148,6 @@ export const updatePlan = asyncHandler(async (req, res, next) => {
     });
   }
 
-
   // تجهيز البيانات للتحديث (فقط الحقول المرسلة)
   const data = {};
 
@@ -149,7 +161,27 @@ export const updatePlan = asyncHandler(async (req, res, next) => {
   if (bestSeller !== undefined) data.bestSeller = bestSeller;
   if (features !== undefined) data.features = features;
   if (sessionTime !== undefined) data.sessionTime = sessionTime;
-  if (currencyId !== undefined) data.currencyId = currencyId;
+  if (currencyId !== undefined) {
+    const existCurrency = await db.findOne({
+      model: "currency",
+      where: {
+        id: currencyId,
+      },
+    });
+    if (!existCurrency) {
+      return errorResponse({
+        next,
+        req,
+        message: "CURRENCY_NOT_FOUND",
+        status: 404,
+      });
+    }
+    data.currencyId = currencyId;
+  }
+  if (color !== undefined) data.color = color;
+  if (isGroup !== undefined) data.isGroup = isGroup;
+  if (maxStudents !== undefined) data.maxStudents = (maxStudents === "0" || maxStudents === 0 || maxStudents === "unlimited") ? "unlimited" : String(maxStudents);
+  if (planType !== undefined) data.planType = planType;
 
   const updatedPlan = await db.updateOne({
     model: "Plans",

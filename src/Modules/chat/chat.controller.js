@@ -21,7 +21,7 @@ export const createConversation = async (req, res, next) => {
         req,
         next,
         status: 403,
-        message: "You can only create conversations for yourself",
+        message: "CAN_ONLY_CREATE_CONVERSATIONS_FOR_YOURSELF",
         messageParams: {},
         details: null,
       });
@@ -31,7 +31,7 @@ export const createConversation = async (req, res, next) => {
         req,
         next,
         status: 403,
-        message: "You can only create conversations for yourself",
+        message: "CAN_ONLY_CREATE_CONVERSATIONS_FOR_YOURSELF",
         messageParams: {},
         details: null,
       });
@@ -42,7 +42,7 @@ export const createConversation = async (req, res, next) => {
       res,
       req,
       status: 201,
-      message: "Conversation created successfully",
+      message: "CONVERSATION_CREATED_SUCCESS",
       data: conversation,
     });
   } catch (error) {
@@ -51,7 +51,7 @@ export const createConversation = async (req, res, next) => {
       req,
       next,
       status: 500,
-      message: "Internal Server Error",
+      message: "INTERNAL_SERVER_ERROR",
       messageParams: {},
       details: null,
     });
@@ -72,7 +72,7 @@ export const getConversations = async (req, res, next) => {
       res,
       req,
       status: 200,
-      message: "Conversations fetched successfully",
+      message: "CONVERSATIONS_FETCHED_SUCCESS",
       data: conversations,
     });
   } catch (error) {
@@ -81,7 +81,7 @@ export const getConversations = async (req, res, next) => {
       req,
       next,
       status: 500,
-      message: "Internal Server Error",
+      message: "INTERNAL_SERVER_ERROR",
       messageParams: {},
       details: null,
     });
@@ -106,7 +106,7 @@ export const getMessages = async (req, res, next) => {
         req,
         next,
         status: 403,
-        message: "Unauthorized access to this conversation",
+        message: "UNAUTHORIZED_CONVERSATION_ACCESS",
         messageParams: {},
         details: null,
       });
@@ -123,7 +123,7 @@ export const getMessages = async (req, res, next) => {
       res,
       req,
       status: 200,
-      message: "Messages fetched successfully",
+      message: "MESSAGES_FETCHED_SUCCESS",
       data: messages,
     });
   } catch (error) {
@@ -132,7 +132,7 @@ export const getMessages = async (req, res, next) => {
       req,
       next,
       status: 500,
-      message: "Internal Server Error",
+      message: "INTERNAL_SERVER_ERROR",
       messageParams: {},
       details: null,
     });

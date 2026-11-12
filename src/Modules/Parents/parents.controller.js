@@ -1,7 +1,14 @@
 import { asyncHandler, successResponse, errorResponse } from "../../Utils/Response.js";
 import * as db from "../../database/dbService.js";
 import { ensureExists } from "../../database/genericService.js";
-import { hash, encryptText, decryptText, looksEncrypted } from "../../Utils/Security/index.js";
+import { formatSchedules } from "../../Utils/Date/time.js";
+import {
+  decryptText,
+  decryptUserSensitiveFields,
+  encryptPassword,
+  encryptText,
+  looksEncrypted,
+} from "../../Utils/Security/index.js";
 
 // GET /parents
 export const getAllParents = asyncHandler(async (req, res, next) => {
@@ -58,12 +65,13 @@ export const getAllParents = asyncHandler(async (req, res, next) => {
 
   const parentsData = await Promise.all(
     parents.map(async (parent) => {
-      const phone = parent.phone ? (looksEncrypted(parent.phone) ? await decryptText({ text: parent.phone }) : parent.phone) : null;
+      await decryptUserSensitiveFields(parent);
       return {
         id: parent.id,
         name: parent.name,
         email: parent.email,
-        phone: phone,
+        password: parent.password,
+        phone: parent.phone,
         code_country: parent.code_country,
         status: parent.status,
         active: parent.status === "active",
@@ -129,7 +137,7 @@ export const getParent = asyncHandler(async (req, res, next) => {
     message: "PARENT_NOT_FOUND",
   });
 
-  const phone = parent.phone ? (looksEncrypted(parent.phone) ? await decryptText({ text: parent.phone }) : parent.phone) : null;
+  await decryptUserSensitiveFields(parent);
 
   const students = await Promise.all(
     parent.parentStudents.map(async (ps) => {
@@ -145,7 +153,8 @@ export const getParent = asyncHandler(async (req, res, next) => {
     id: parent.id,
     name: parent.name,
     email: parent.email,
-    phone: phone,
+    password: parent.password,
+    phone: parent.phone,
     code_country: parent.code_country,
     status: parent.status,
     active: parent.status === "active",
@@ -172,18 +181,14 @@ export const createParent = asyncHandler(async (req, res, next) => {
     code_country,
     active,
     students = [],
+    age,
+    city,
   } = req.body;
 
-  const [checkUserByEmail, checkUserByPhone] = await Promise.all([
-    db.findOne({ model: "user", where: { email } }),
-    db.findFirst({ model: "user", where: { phone } }),
-  ]);
+  const checkUserByEmail = await db.findOne({ model: "user", where: { email } });
 
   if (checkUserByEmail) {
     return errorResponse({ req, next, message: "EMAIL_EXISTS", status: 400 });
-  }
-  if (checkUserByPhone) {
-    return errorResponse({ req, next, message: "PHONE_EXISTS", status: 400 });
   }
 
   const parentRole = await db.findFirst({
@@ -195,7 +200,7 @@ export const createParent = asyncHandler(async (req, res, next) => {
     return errorResponse({ req, next, message: "ROLE_NOT_FOUND", status: 404 });
   }
 
-  const hashedPassword = await hash({ password });
+  const encryptedPassword = encryptPassword({ password });
   const encryptedPhone = encryptText({ text: phone });
 
   let newParent;
@@ -206,12 +211,14 @@ export const createParent = asyncHandler(async (req, res, next) => {
       data: {
         name,
         email,
-        password: hashedPassword,
+        password: encryptedPassword,
         phone: encryptedPhone,
         code_country,
         roleId: parentRole.id,
         status: active === false ? "blocked" : "active",
         confirmAt: new Date(),
+        age: age ? Number(age) : undefined,
+        city: city || undefined,
       },
     });
 
@@ -294,6 +301,8 @@ export const updateParent = asyncHandler(async (req, res, next) => {
     code_country,
     active,
     students,
+    age,
+    city,
   } = req.body;
 
   const parentRole = await db.findFirst({
@@ -310,9 +319,9 @@ export const updateParent = asyncHandler(async (req, res, next) => {
     where: { id, roleId: parentRole.id },
   });
 
-  let hashedPassword;
+  let encryptedPassword;
   if (password) {
-    hashedPassword = await hash({ password });
+    encryptedPassword = encryptPassword({ password });
   }
 
   // Handle unique constraints
@@ -327,17 +336,7 @@ export const updateParent = asyncHandler(async (req, res, next) => {
       });
   }
 
-  if (phone) {
-    const existingUser = await db.findFirst({ model: "user", where: { phone } });
-    if (existingUser && existingUser.id !== parent.id) {
-      return errorResponse({
-        req,
-        message: "PHONE_EXISTS",
-        next,
-        status: 400,
-      });
-    }
-  }
+
 
   const encryptedPhone = phone ? encryptText({ text: phone }) : undefined;
 
@@ -349,10 +348,12 @@ export const updateParent = asyncHandler(async (req, res, next) => {
       data: {
         ...(name && { name }),
         ...(email && { email }),
-        ...(hashedPassword && { password: hashedPassword }),
+        ...(encryptedPassword && { password: encryptedPassword }),
         ...(encryptedPhone && { phone: encryptedPhone }),
         ...(code_country && { code_country }),
         ...(active !== undefined && { status: active === true ? "active" : "blocked" }),
+        ...(age !== undefined && { age: age ? Number(age) : null }),
+        ...(city !== undefined && { city: city || null }),
       },
     });
 
@@ -578,11 +579,13 @@ export const getStudentSessions = asyncHandler(async (req, res, next) => {
     orderBy: { start_time: "desc" },
   });
 
+  const formattedSessions = formatSchedules(sessions, req.timezone);
+
   return successResponse({
     req,
     res,
     status: 200,
-    data: sessions,
+    data: formattedSessions,
   });
 });
 
@@ -607,11 +610,16 @@ export const getStudentAttendance = asyncHandler(async (req, res, next) => {
     orderBy: { createdAt: "desc" },
   });
 
+  const formattedAttendanceLogs = attendanceLogs.map((log) => ({
+    ...log,
+    schedule: log.schedule ? formatSchedules(log.schedule, req.timezone) : log.schedule,
+  }));
+
   return successResponse({
     req,
     res,
     status: 200,
-    data: attendanceLogs,
+    data: formattedAttendanceLogs,
   });
 });
 

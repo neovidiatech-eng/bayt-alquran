@@ -5,8 +5,13 @@ import {
 } from "../../../Utils/Response.js";
 import * as db from "../../../database/dbService.js";
 import { ensureExists } from "../../../database/genericService.js";
-import { encryptText, hash } from "../../../Utils/Security/index.js";
-import { redis } from "../../../Utils/Radis/Connection.js";
+import {
+  decryptUserSensitiveFields,
+  encryptPassword,
+  encryptText,
+} from "../../../Utils/Security/index.js";
+import { redis } from "../../../Utils/Redis/Connection.js";
+import { rbacCache } from "../../../Utils/RBAC/cache.js";
 
 export const getAllStuff = asyncHandler(async (req, res, next) => {
   const { search, page = 1, limit = 10 } = req.query;
@@ -31,6 +36,10 @@ export const getAllStuff = asyncHandler(async (req, res, next) => {
       role: true,
     },
   });
+
+  await Promise.all(
+    stuff.map((stuffUser) => decryptUserSensitiveFields(stuffUser.user)),
+  );
 
   return successResponse({
     res,
@@ -63,6 +72,8 @@ export const getStuffById = asyncHandler(async (req, res, next) => {
   const permissions =
     stuff.role?.rolePermissions.map((rp) => rp.permission) || [];
 
+  await decryptUserSensitiveFields(stuff.user);
+
   return successResponse({
     res,
     req,
@@ -75,11 +86,11 @@ export const getStuffById = asyncHandler(async (req, res, next) => {
 });
 
 export const createStuffUser = asyncHandler(async (req, res, next) => {
-  const { name, email, password, phone, codeCountry, roleId } = req.body;
+  const { name, email, password, phone, code_country, roleId, age, city } = req.body;
+  let codeCountry=code_country
 
-  const [checkUserByEmail, checkUserByPhone, checkRole] = await Promise.all([
+  const [checkUserByEmail, checkRole] = await Promise.all([
     db.findOne({ model: "user", where: { email } }),
-    db.findFirst({ model: "user", where: { phone } }),
     roleId
       ? db.findOne({ model: "role", where: { id: roleId } })
       : Promise.resolve(null),
@@ -87,25 +98,25 @@ export const createStuffUser = asyncHandler(async (req, res, next) => {
 
   if (checkUserByEmail)
     return errorResponse({ req, next, message: "EMAIL_EXISTS", status: 400 });
-  if (checkUserByPhone)
-    return errorResponse({ req, next, message: "PHONE_EXISTS", status: 400 });
   if (roleId && !checkRole)
     return errorResponse({ req, next, message: "ROLE_NOT_FOUND", status: 404 });
 
-  const hashedPassword = await hash({ password });
+  const encryptedPassword = encryptPassword({ password });
 
   const result = await db.transaction([
     db.create({
       model: "user",
       data: {
         email,
-        password: hashedPassword,
+        password: encryptedPassword,
         name,
         phone,
         code_country: codeCountry,
         roleId: roleId || null,
         status: "active",
         confirmAt: new Date(),
+        age: age ? Number(age) : undefined,
+        city: city || undefined,
       },
     }),
   ]);
@@ -132,12 +143,13 @@ export const createStuffUser = asyncHandler(async (req, res, next) => {
 
 export const updateStuffUser = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
-  const { name, email, phone, code_country, roleId } = req.body;
+  const { name, email, password, phone, code_country, roleId, age, city } = req.body;
 
   const stuff = await ensureExists({
     model: "stuff",
     where: { id },
     include: { user: true },
+    message: "STAFF_NOT_FOUND",
   });
 
   if (email && email !== stuff.user.email) {
@@ -146,23 +158,26 @@ export const updateStuffUser = asyncHandler(async (req, res, next) => {
       return errorResponse({ req, next, message: "EMAIL_EXISTS", status: 400 });
   }
 
-  if (phone && phone !== stuff.user.phone) {
-    const existing = await db.findFirst({ model: "user", where: { phone } });
-    if (existing)
-      return errorResponse({ req, next, message: "PHONE_EXISTS", status: 400 });
-  }
+
+
+  const encryptedPassword = password
+    ? encryptPassword({ password })
+    : undefined;
 
   // Update user data
-  if (name || email || phone || code_country || roleId !== undefined) {
+  if (name || email || encryptedPassword || phone || code_country || roleId !== undefined || age !== undefined || city !== undefined) {
     await db.updateOne({
       model: "user",
       where: { id: stuff.user_id },
       data: {
         ...(name && { name }),
         ...(email && { email }),
+        ...(encryptedPassword && { password: encryptedPassword }),
         ...(phone && { phone }),
         ...(code_country && { code_country }),
         ...(roleId !== undefined && { roleId }),
+        ...(age !== undefined && { age: age ? Number(age) : null }),
+        ...(city !== undefined && { city: city || null }),
       },
     });
   }
@@ -181,6 +196,10 @@ export const updateStuffUser = asyncHandler(async (req, res, next) => {
     },
   });
 
+  await decryptUserSensitiveFields(updatedStuff.user);
+
+  await rbacCache.invalidateUserCache(stuff.user_id);
+
   return successResponse({
     res,
     req,
@@ -191,7 +210,10 @@ export const updateStuffUser = asyncHandler(async (req, res, next) => {
 
 export const deleteStuffUser = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
-  const stuff = await ensureExists({ model: "stuff", where: { id } });
+  const stuff = await ensureExists({ model: "stuff", where: { id }, include: { role: true }, message: "STAFF_NOT_FOUND" });
+  if (stuff.role?.name === "super_admin") {
+    return errorResponse({ req, next, message: "SUPER_ADMIN_CANNOT_BE_DELETED", status: 400 });
+  }
 
   // Delete user (cascades to stuff)
   await db.deleteOne({ model: "user", where: { id: stuff.user_id } });
@@ -213,12 +235,11 @@ export const registerParent = asyncHandler(async (req, res, next) => {
     country,
     timezone,
     students,
+    age,
+    city,
   } = req.body;
 
-  const [checkUserByEmail, checkUserByPhone] = await Promise.all([
-    db.findFirst({ model: "user", where: { email } }),
-    db.findFirst({ model: "user", where: { phone } }),
-  ]);
+  const checkUserByEmail = await db.findFirst({ model: "user", where: { email } });
 
   const userRole = await db.upsertOne({
     model: "role",
@@ -233,11 +254,7 @@ export const registerParent = asyncHandler(async (req, res, next) => {
     return errorResponse({ req, next, message: "EMAIL_EXISTS", status: 400 });
   }
 
-  if (checkUserByPhone) {
-    return errorResponse({ req, next, message: "PHONE_EXISTS", status: 400 });
-  }
-
-  const hashedPassword = await hash({ password });
+  const encryptedPassword = encryptPassword({ password });
   const encryptedPhone = encryptText({ text: phone });
 
   await db.transaction(async (tx) => {
@@ -246,13 +263,15 @@ export const registerParent = asyncHandler(async (req, res, next) => {
       data: {
         name,
         email,
-        password: hashedPassword,
+        password: encryptedPassword,
         phone: encryptedPhone,
         code_country: codeCountry,
         timezone,
         roleId: userRole.id,
         confirmAt: new Date(),
         status: "active",
+        age: age ? Number(age) : undefined,
+        city: city || undefined,
       },
     });
 

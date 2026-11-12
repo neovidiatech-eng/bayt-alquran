@@ -2,7 +2,7 @@ import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import pg from "pg";
 import dotenv from "dotenv";
-import { encryptText } from "../../src/Utils/Security/index.js";
+import { encryptPassword } from "../../src/Utils/Security/index.js";
 
 dotenv.config();
 
@@ -52,14 +52,13 @@ export async function seedStuff() {
       continue;
     }
 
-    const encryptedPassword = encryptText({ text: item.password });
+    const encryptedPassword = encryptPassword({ password: item.password });
 
     // Find or create user first
     const user = await prisma.user.upsert({
       where: { email: item.email },
       update: {
         name: item.name,
-        password: encryptedPassword,
         phone: item.phone,
         code_country: item.code_country,
         roleId: role.id,

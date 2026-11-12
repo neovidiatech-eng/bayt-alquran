@@ -1,6 +1,5 @@
-import { Router } from "express";
+import express, { Router } from "express";
 import path from "node:path";
-import express from "express";
 
 // Router imports
 import authRouter from "./Modules/Authentication/auth.routes.js";
@@ -23,6 +22,13 @@ import withdrawalsRouter from "./Modules/Withdrawals/withdrawals.routes.js";
 import chatRouter from "./Modules/chat/chat.routes.js";
 import coursesRouter from "./Modules/courses/courses.routes.js";
 import parentsRouter from "./Modules/Parents/parents.routes.js";
+import notificationsRouter from "./Modules/Notifications/notifications.routes.js";
+import userNotificationsRouter from "./Modules/Notifications/userNotifications.routes.js";
+import violationsRouter from "./Modules/Violations/violations.routes.js";
+import ranksRouter from "./Modules/Ranks/ranks.routes.js";
+import dailyQuranRecitationRouter from "./Modules/DailyQuranRecitation/dailyQuranRecitation.routes.js";
+import feedbackRouter from "./Modules/feedback/feedback.routes.js";
+import moderatorRouter from "./Modules/moderator/moderator.routes.js";
 
 const rootRouter = Router();
 
@@ -47,9 +53,16 @@ rootRouter.use("/withdrawals", withdrawalsRouter);
 rootRouter.use("/chat", chatRouter);
 rootRouter.use("/courses", coursesRouter);
 rootRouter.use("/parent", parentsRouter);
+rootRouter.use("/admin/notifications", notificationsRouter);
+rootRouter.use("/notifications", userNotificationsRouter);
+rootRouter.use("/violations", violationsRouter);
+rootRouter.use("/ranks", ranksRouter);
+rootRouter.use("/daily-quran-recitation", dailyQuranRecitationRouter);
+rootRouter.use("/feedback",feedbackRouter);
+rootRouter.use("/moderator", moderatorRouter);
 
 // Static files
-rootRouter.use("/uploads", express.static(path.resolve("./src/uploads")));
+rootRouter.use("/uploads", express.static(path.resolve("./uploads")));
 
 // Root health check
 rootRouter.get("/", (req, res) => {
@@ -57,3 +70,4 @@ rootRouter.get("/", (req, res) => {
 });
 
 export default rootRouter;
+

@@ -1,7 +1,16 @@
 import prisma from "./Connection.db.js";
 
+const MODEL_ALIASES = {
+  ScheduleStudent: "groupScheduleStudent",
+  scheduleStudent: "groupScheduleStudent",
+  GroupScheduleStudent: "groupScheduleStudent",
+};
+
 const getClient = (model, prismaClient = prisma) => {
-  const client = prismaClient[model];
+  const resolvedModel = MODEL_ALIASES[model] || model;
+  const client =
+    prismaClient[resolvedModel] ||
+    prismaClient[resolvedModel.charAt(0).toLowerCase() + resolvedModel.slice(1)];
   if (!client) {
     throw new Error(`Model Not Found: "${model}"`);
   }
@@ -123,11 +132,10 @@ export const findManyWithPaginationAndCount = async ({
   orderBy = { createdAt: "desc" },
   select,
   include,
-}) => {
+}) => {   
   const client = getClient(model);
-
-  const take = Math.min(Math.max(Number(limit) || 20, 1), 50);
-  const p = Math.max(Number(page) || 1, 1);
+  const take = Number(limit) || 20;
+  const p = Number(page) || 1;
   const skip = (p - 1) * take;
 
   const [items, totalItems] = await Promise.all([
@@ -238,6 +246,25 @@ export const groupBy = ({
 }) => {
   return getClient(model).groupBy({
     by,
+    ...(where ? { where } : {}),
+    ...(_count ? { _count } : {}),
+    ...(_sum ? { _sum } : {}),
+    ...(_avg ? { _avg } : {}),
+    ...(_min ? { _min } : {}),
+    ...(_max ? { _max } : {}),
+  });
+};
+
+export const aggregate = ({
+  model,
+  where,
+  _count,
+  _sum,
+  _avg,
+  _min,
+  _max,
+}) => {
+  return getClient(model).aggregate({
     ...(where ? { where } : {}),
     ...(_count ? { _count } : {}),
     ...(_sum ? { _sum } : {}),

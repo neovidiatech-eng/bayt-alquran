@@ -5,7 +5,7 @@ export const generateToken = ({ user, tokenType }) => {
     : process.env.JWT_SECRET_REFRESH_ADMIN;
 
   return jwt.sign({ id: user.id }, secret, {
-    expiresIn: tokenType === "access" ? "2h" : "7d",
+    expiresIn: tokenType === "access" ? "1y" : "2y",
   });
 };
 

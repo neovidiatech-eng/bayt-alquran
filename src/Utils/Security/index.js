@@ -10,8 +10,7 @@ export const compare = async ({ password, hash }) => {
 };
 
 export const encryptText = ({ text }) => {
-  if (text === undefined || text === null) return text;
-  return CryptoJS.AES.encrypt(text, process.env.ENCRYPT_KEY).toString();
+  return CryptoJS.AES.encrypt(String(text), process.env.ENCRYPT_KEY).toString();
 };
 
 export const decryptText = async ({ text }) => {
@@ -30,39 +29,45 @@ export const decryptText = async ({ text }) => {
 export const looksEncrypted = (value) => {
   if (typeof value !== "string") return false;
 
-  return value.startsWith("U2FsdGVkX1") || /^[a-f0-9]{32}:[a-f0-9]+$/i.test(value);
+  return (
+    value.startsWith("U2FsdGVkX1") ||
+    /^[a-f0-9]{32}:[a-f0-9]+$/i.test(value)
+  );
 };
 
-export const isBcryptHash = (value) => {
-  return typeof value === "string" && /^\$2[aby]\$\d{2}\$/.test(value);
-};
-
-export const comparePassword = async ({ password, storedPassword }) => {
-  if (!storedPassword) return false;
-
-  if (isBcryptHash(storedPassword)) {
-    return compare({ password, hash: storedPassword });
-  }
-
-  const decryptedPassword = await decryptText({ text: storedPassword });
-  return decryptedPassword === password;
+export const encryptPassword = ({ password }) => {
+  return encryptText({ text: password });
 };
 
 export const decryptPassword = async ({ password }) => {
-  if (!password || isBcryptHash(password)) return null;
-  return decryptText({ text: password });
+  return await decryptText({ text: password });
 };
 
-export const normalizePhone = (phoneStr) => {
-  if (!phoneStr) return "";
-  const clean = phoneStr.replace(/\D/g, "");
-  return clean.length >= 9 ? clean.slice(-9) : clean;
+export const verifyPassword = async ({ password, storedPassword }) => {
+  if (!password || !storedPassword) return false;
+
+  if (looksEncrypted(storedPassword)) {
+    const decryptedPassword = await decryptPassword({ password: storedPassword });
+    return decryptedPassword === password;
+  }
+
+  return await compare({ password, hash: storedPassword });
 };
 
-export const matchPhone = async (storedPhone, inputPhone) => {
-  if (!storedPhone || !inputPhone) return false;
-  const decrypted = looksEncrypted(storedPhone)
-    ? await decryptText({ text: storedPhone })
-    : storedPhone;
-  return normalizePhone(decrypted) === normalizePhone(inputPhone);
+export const decryptUserSensitiveFields = async (user) => {
+  if (!user) return user;
+
+  if (user.password && looksEncrypted(user.password)) {
+    user.password = await decryptPassword({ password: user.password });
+  }
+
+  if (user.phone && looksEncrypted(user.phone)) {
+    user.phone = await decryptText({ text: user.phone });
+  }
+
+  return user;
+};
+
+export const decryptUsersSensitiveFields = async (users = []) => {
+  return await Promise.all(users.map((user) => decryptUserSensitiveFields(user)));
 };

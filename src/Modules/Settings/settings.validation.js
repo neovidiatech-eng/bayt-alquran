@@ -1,8 +1,9 @@
 import joi from "joi";
 
-export const updateLateDiscount = {
+export const updateSettings = {
   body: joi.object({
-    lateMinutes: joi.number().integer().min(0).required(),
-    discountPercentage: joi.number().min(0).max(100).required(),
+    paidSessionCount: joi.number().integer().min(0).optional(),
+    studentCanJoin: joi.boolean().optional(),
   }).required(),
 };
+

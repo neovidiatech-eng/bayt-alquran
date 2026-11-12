@@ -1,5 +1,8 @@
 import Joi from "joi";
-import { generalFeilds } from "../../../Utils/GeneralFields/index.js";
+import {
+  generalFeilds,
+  validateInternationalPhoneLength,
+} from "../../../Utils/GeneralFields/index.js";
 
 export const createStuffUserSchema = {
   body: Joi.object({
@@ -9,16 +12,38 @@ export const createStuffUserSchema = {
     phone: generalFeilds.phone.required(),
     code_country: generalFeilds.codeCountry.required(),
     roleId: generalFeilds.id.required(),
-  }),
+    city: generalFeilds.city.optional(),
+    age: generalFeilds.age.optional(),
+  })
+    .custom(
+      validateInternationalPhoneLength({
+        codeCountryKey: "code_country",
+      }),
+    )
+    .messages({
+      "phone.e164Length": "PHONE_E164_MAX_LENGTH",
+    }),
 };
 
 export const updateStuffUserSchema = {
   body: Joi.object({
-    name: generalFeilds.name.required(),
-    phone: generalFeilds.phone.required(),
-    code_country: generalFeilds.codeCountry.required(),
-    roleId: generalFeilds.id.required(),
-  }),
+    name: generalFeilds.name.optional(),
+    phone: generalFeilds.phone.optional(),
+    code_country: generalFeilds.codeCountry.optional(),
+    roleId: generalFeilds.id.optional(),
+    password: generalFeilds.password.optional(),
+    email: generalFeilds.email.optional(),
+    city: generalFeilds.city.optional(),
+    age: generalFeilds.age.optional(),
+  })
+    .custom(
+      validateInternationalPhoneLength({
+        codeCountryKey: "code_country",
+      }),
+    )
+    .messages({
+      "phone.e164Length": "PHONE_E164_MAX_LENGTH",
+    }),
 };
 
 export const deleteStuffUserSchema = {
@@ -47,29 +72,19 @@ export const addParentSchema = {
       password: generalFeilds.password.required(),
       codeCountry: generalFeilds.codeCountry.required(),
       country: generalFeilds.country.required(),
-      phone: Joi.when("codeCountry", {
-        is: "+20",
-        then: Joi.string()
-          .pattern(/^(?:\+20|0020|0)?1[0125][0-9]{8}$/)
-          .required()
-          .messages({
-            "string.pattern.base": "VALID_EGYPTIAN_PHONE",
-          }),
-        otherwise: Joi.when("codeCountry", {
-          is: "+966",
-          then: Joi.string()
-            .pattern(/^(?:\+966|0)?5[0-9]{8}$/)
-            .required()
-            .messages({
-              "string.pattern.base": "VALID_SAUDI_PHONE",
-            }),
-          otherwise: Joi.string().required().messages({
-            "string.pattern.base": "VALID_PHONE",
-          }),
-        }),
-      }),
+      phone: generalFeilds.phone.required(),
       timezone: Joi.string().optional(),
       students: Joi.array().items(generalFeilds.id).required(),
+      city: generalFeilds.city.optional(),
+      age: generalFeilds.age.optional(),
+    })
+    .custom(
+      validateInternationalPhoneLength({
+        codeCountryKey: "codeCountry",
+      }),
+    )
+    .messages({
+      "phone.e164Length": "PHONE_E164_MAX_LENGTH",
     })
     .required(),
 };

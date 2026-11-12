@@ -1,5 +1,6 @@
 import joi from "joi";
 import { generalFeilds } from "../../../Utils/GeneralFields/index.js";
+import { studentPaidStatus } from "../../../Utils/Enums/studentts.js";
 export const getSubscription = {
   query: joi.object({
     search: generalFeilds.search.messages({
@@ -26,5 +27,7 @@ export const changeStatus = {
       "string.base": "STATUS_STRING",
       "any.only": "STATUS_REJECTED_APPROVED",
     }),
+
+    paid:joi.string().valid(...Object.values(studentPaidStatus)).required(),
   }),
 };

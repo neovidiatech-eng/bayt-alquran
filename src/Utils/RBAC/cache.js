@@ -1,4 +1,5 @@
-import { redis } from "../Radis/Connection.js";
+import { redis } from "../Redis/Connection.js";
+import * as db from "../../database/dbService.js";
 
 const CACHE_TTL = 3600; // Cache permissions for 1 hour
 
@@ -29,11 +30,61 @@ export const rbacCache = {
     }
   },
 
+  async invalidateUserCache(userId) {
+    try {
+      if (userId) {
+        await redis.del(`user:${userId}`);
+      }
+    } catch (err) {
+      console.error("Redis invalidate user error:", err);
+    }
+  },
+
   async invalidateRoleCache(roleId) {
     try {
+      if (!roleId) return;
       await redis.del(this.getRolePermissionsKey(roleId));
+
+      const userIds = new Set();
+
+      // Find users with user.roleId or matching stuff/teacher relations
+      const users = await db.findMany({
+        model: "user",
+        where: {
+          OR: [
+            { roleId },
+            { stuff: { roleId } },
+            { teacher: { roleId } },
+          ],
+        },
+        select: { id: true },
+      });
+      users.forEach((u) => userIds.add(u.id));
+
+      // Find users directly from stuff table
+      const stuffUsers = await db.findMany({
+        model: "stuff",
+        where: { roleId },
+        select: { user_id: true },
+      });
+      stuffUsers.forEach((s) => userIds.add(s.user_id));
+
+      // Find users directly from teacher table
+      const teacherUsers = await db.findMany({
+        model: "teacher",
+        where: { roleId },
+        select: { user_id: true },
+      });
+      teacherUsers.forEach((t) => userIds.add(t.user_id));
+
+      for (const userId of userIds) {
+        if (userId) {
+          await redis.del(`user:${userId}`);
+        }
+      }
     } catch (err) {
-      console.error("Redis invalidate error:", err);
+      console.error("Redis invalidate role error:", err);
     }
-  }
+  },
 };
+

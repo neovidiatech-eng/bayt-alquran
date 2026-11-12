@@ -1,12 +1,12 @@
 import Joi from "joi";
 import {
   generalFeilds,
-  validateE164PhoneLength,
+  validateInternationalPhoneLength,
 } from "../../Utils/GeneralFields/index.js";
 
 export const registeritonSchema = {
-  body: validateE164PhoneLength(
-    Joi.object().keys({
+  body: Joi.object()
+    .keys({
       name: generalFeilds.name.required(),
       email: generalFeilds.email.required(),
       password: generalFeilds.password.required(),
@@ -14,6 +14,7 @@ export const registeritonSchema = {
       birth_date: generalFeilds.birth_date.required(),
       gender: generalFeilds.gender.required(),
       country: generalFeilds.country.required(),
+      nationality: generalFeilds.nationality.required(),
       phone: generalFeilds.phone.required(),
       plan_id: generalFeilds.id
         .messages({
@@ -23,24 +24,66 @@ export const registeritonSchema = {
         })
         .required(),
       timezone: Joi.string().optional(),
-    }),
-  ).required(),
+      city: generalFeilds.city.optional(),
+      age: generalFeilds.age.optional(),
+    })
+    .custom(
+      validateInternationalPhoneLength({
+        codeCountryKey: "codeCountry",
+      }),
+    )
+    .messages({
+      "phone.e164Length": "PHONE_E164_MAX_LENGTH",
+    })
+    .required(),
 };
+const isValidPhoneInput = (value) => {
+  if (typeof value !== "string") return false;
+  const digits = value.replace(/\D/g, "");
+  return /^\+?[0-9\s\-()]{4,20}$/.test(value) && digits.length >= 4 && digits.length <= 15;
+};
+
+const loginIdentifierField = Joi.string()
+  .trim()
+  .empty("")
+  .custom((value, helpers) => {
+    const isEmail = !Joi.string().email().validate(value).error;
+    if (!isEmail && !isValidPhoneInput(value)) {
+      return helpers.message("VALID_EMAIL_OR_PHONE");
+    }
+    return value;
+  })
+  .messages({
+    "string.base": "VALID_EMAIL_OR_PHONE",
+  });
+
+const loginPhoneField = Joi.string()
+  .trim()
+  .empty("")
+  .custom((value, helpers) => {
+    if (!isValidPhoneInput(value)) {
+      return helpers.message("VALID_PHONE");
+    }
+    return value;
+  })
+  .messages({
+    "string.base": "VALID_PHONE",
+  });
+
 export const loginSchema = {
   body: Joi.object()
     .keys({
-      email: Joi.alternatives()
-        .try(
-          generalFeilds.email,
-          Joi.string().pattern(/^\+?[0-9]{4,15}$/)
-        )
-        .required()
-        .messages({
-          "alternatives.match": "VALID_EMAIL_OR_PHONE",
-          "any.required": "EMAIL_OR_PHONE_REQUIRED",
-          "string.empty": "EMAIL_OR_PHONE_REQUIRED",
-        }),
+      email: loginIdentifierField.optional(),
+      phone: loginPhoneField.optional(),
+      identifier: loginIdentifierField.optional(),
+      emailOrPhone: loginIdentifierField.optional(),
+      codeCountry: generalFeilds.codeCountry.empty("").optional(),
+      code_country: generalFeilds.codeCountry.empty("").optional(),
       password: generalFeilds.password.required(),
+    })
+    .or("email", "phone", "identifier", "emailOrPhone")
+    .messages({
+      "object.missing": "EMAIL_OR_PHONE_REQUIRED",
     })
     .required(),
 };
@@ -91,3 +134,108 @@ export const resetPasswordSchema = {
     })
     .required(),
 };
+
+export const saveFCM = {
+  body: Joi.object()
+    .keys({
+      fcmToken: generalFeilds.fcmToken.required().messages({
+        "any.required": "FCM_TOKEN_REQUIRED",
+        "string.empty": "FCM_TOKEN_REQUIRED",
+      }),
+    })
+    .required(),
+};
+
+export const registerTeacherSchema = {
+  body: Joi.object()
+    .keys({
+      name: generalFeilds.name.required(),
+      email: generalFeilds.email.required(),
+      password: generalFeilds.password.required(),
+      comfirmPassword: generalFeilds.confirmPassword.required(),
+      codeCountry: generalFeilds.codeCountry.required(),
+      phone: generalFeilds.phone.required(),
+      gender: generalFeilds.gender.required(),
+      country: generalFeilds.country.optional(),
+      nationality: generalFeilds.nationality.optional(),
+      timezone: Joi.string().optional(),
+      city: generalFeilds.city.optional(),
+      age: generalFeilds.age.optional(),
+      notes: Joi.string().allow("").trim().optional(),
+      additionalData: Joi.object().keys({
+        whatsappNumber: Joi.string().required(),
+        birthDate: generalFeilds.birth_date.required(),
+        qualification: Joi.string().required(),
+        hasPersonalLaptop:Joi.boolean().required(),
+        governorate: Joi.string().required(),
+        maritalStatus:Joi.string().required(),
+        hasCurrentJob:Joi.boolean().required(),
+        hasFreeTimeFrom3To8:Joi.boolean().required(),
+        dailyFreeTimeHours:Joi.string().required(), 
+        niqabDuringSession:Joi.boolean().required(),
+onlineTeachingExperience:Joi.string().required(),
+        memorizesEntireQuran:Joi.string().required(),
+        howDidYouHearAboutUs:Joi.string().required(),
+        practicalTajweedLevel:Joi.string().required(),
+        theoreticalTajweedLevel:Joi.string().required(),
+        otherLanguages:Joi.string().required(),
+        agreedToWorkConditions:Joi.boolean().required(),
+      }),
+    })
+    .custom(
+      validateInternationalPhoneLength({
+        codeCountryKey: "codeCountry",
+      }),
+    )
+    .messages({
+      "phone.e164Length": "PHONE_E164_MAX_LENGTH",
+    })
+    .required(),
+};
+
+export const approveTeacherRequestSchema = {
+  params: Joi.object({
+    userId: generalFeilds.id.required(),
+  }),
+  body: Joi.object({
+    currency_id: generalFeilds.id
+      .messages({
+        "string.base": "CURRENCY_ID_STRING",
+        "string.empty": "CURRENCY_ID_EMPTY",
+        "any.required": "CURRENCY_ID_REQUIRED",
+      })
+      .required(),
+    subject_ids: Joi.array()
+      .items(
+        generalFeilds.id.messages({
+          "string.base": "SUBJECT_ID_STRING",
+          "string.empty": "SUBJECT_ID_EMPTY",
+        }),
+      )
+      .optional(),
+    meeting_link: Joi.string().uri().optional().messages({
+      "string.base": "MEETING_LINK_STRING",
+      "string.uri": "MEETING_LINK_INVALID_URI",
+    }),
+    hour_price: Joi.number().positive().optional().messages({
+      "number.base": "HOUR_PRICE_MUST_BE_NUMBER",
+      "number.positive": "HOUR_PRICE_MUST_BE_POSITIVE",
+    }),
+  }).required(),
+};
+
+export const rejectTeacherRequestSchema = {
+  params: Joi.object({
+    userId: generalFeilds.id.required(),
+  }),
+};
+
+export const getTeacherRequestsSchema = {
+  query: Joi.object({
+    page: generalFeilds.page,
+    limit: generalFeilds.limit,
+  }),
+};
+
+
+

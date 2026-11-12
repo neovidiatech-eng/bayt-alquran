@@ -4,8 +4,14 @@ import {
   successResponse,
 } from "../../Utils/Response.js";
 import * as db from "../../database/dbService.js";
-import { getNowUTC } from "../../Utils/Date/time.js";
+import { formatSchedules } from "../../Utils/Date/time.js";
 import { rbacCache } from "../../Utils/RBAC/cache.js";
+import dayjs from "dayjs";
+import prisma from "../../database/Connection.db.js";
+import {
+  getModeratorStudentIds,
+  buildStudentScheduleFilter,
+} from "../../Utils/Permissions/permissions.js";
 
 export const getAllRoles = asyncHandler(async (req, res, next) => {
   const { search } = req.query;
@@ -141,6 +147,10 @@ export const assignRoleToUser = asyncHandler(async (req, res, next) => {
       role: true,
     },
   });
+
+  // Invalidate permissions cache for the user
+  await rbacCache.invalidateUserCache(user_id);
+
   return successResponse({
     res,
     req,
@@ -241,37 +251,130 @@ export const deleteRole = asyncHandler(async (req, res, next) => {
 });
 
 export const getDashboard = asyncHandler(async (req, res, next) => {
-  const now = getNowUTC();
-  const startOfDay = now.startOf("day").toDate();
-  const endOfDay = now.endOf("day").toDate();
-  const sevenDaysAgo = now.subtract(7, "day").startOf("day").toDate();
+  const now = dayjs().tz(req.timezone || "Africa/Cairo");
+  const startOfDay = now.startOf("day").utc().toDate();
+  const endOfDay = now.endOf("day").utc().toDate();
+  const sevenDaysAgo = now.subtract(7, "day").startOf("day").utc().toDate();
+  const startOfMonth = now.startOf("month").utc().toDate();
+  const endOfMonth = now.endOf("month").utc().toDate();
+
+  const assignedStudentIds = await getModeratorStudentIds(req.user);
+  const isMod = assignedStudentIds !== null;
+  const modScheduleFilter = isMod
+    ? buildStudentScheduleFilter(assignedStudentIds)
+    : {};
+  const modStudentWhere = isMod ? { id: { in: assignedStudentIds } } : {};
 
   const [
     studentsCount,
     teachersCount,
+    stuffCount,
+    parentsCount,
     pendingRequestsCount,
     todaySessionsCount,
+    reportsCount,
+    totalRevenueAgg,
+    monthlyRevenueAgg,
+    allStudents,
+    allSubscriptions,
     upcomingSessions,
     lastSevenDaysSessions,
-    recentRequests,
-    recentReviews,
-    newTeachers,
+    totalViolationsCount,
+    totalModeratorViolationsCount,
+    subscriptionRequestsCount,
+    completedSessionsCount,
+    withdrawalRequestsCount,
   ] = await Promise.all([
-    db.count({ model: "student" }),
+    db.count({ model: "student", where: isMod ? modStudentWhere : undefined }),
     db.count({ model: "teacher" }),
-    db.count({ model: "session_request", where: { status: "pending" } }),
+    db.count({ model: "stuff" }),
+    db.count({
+      model: "user",
+      where: {
+        OR: [
+          { parentStudents: { some: {} } },
+          { role: { name: { equals: "parent", mode: "insensitive" } } },
+        ],
+      },
+    }),
+    db.count({
+      model: "session_request",
+      where: {
+        status: "pending",
+        ...(isMod && {
+          OR: [
+            { schedule: modScheduleFilter },
+            { requester: { student: { id: { in: assignedStudentIds } } } },
+          ],
+        }),
+      },
+    }),
     db.count({
       model: "schedule",
-      where: { start_time: { gte: startOfDay, lte: endOfDay } },
+      where: {
+        start_time: { gte: startOfDay, lte: endOfDay },
+        ...modScheduleFilter,
+      },
+    }),
+    db.count({
+      model: "Review",
+      where: isMod ? { schedule: modScheduleFilter } : undefined,
     }),
 
-    // Upcoming Sessions
+    // Total Revenue (all-time completed revenue)
+    db.aggregate({
+      model: "transaction",
+      where: {
+        status: "completed",
+        type: { in: ["subscription", "credit"] },
+      },
+      _sum: { amount: true },
+    }),
+
+    // Monthly Revenue (current month completed revenue)
+    db.aggregate({
+      model: "transaction",
+      where: {
+        status: "completed",
+        type: { in: ["subscription", "credit"] },
+        createdAt: {
+          gte: startOfMonth,
+          lte: endOfMonth,
+        },
+      },
+      _sum: { amount: true },
+    }),
+
+    // All Students with plans to analyze session counts & statuses
+    db.findMany({
+      model: "student",
+      where: isMod ? modStudentWhere : undefined,
+      include: {
+        plan: { select: { name_en: true, name_ar: true, duration: true } },
+        user: { select: { id: true, name: true, email: true } },
+      },
+    }),
+
+    // All Subscriptions to analyze subscription dates
+    db.findMany({
+      model: "Subscription",
+      where: isMod
+        ? { user: { student: { id: { in: assignedStudentIds } } } }
+        : undefined,
+      include: {
+        plan: { select: { name_en: true, name_ar: true, duration: true } },
+        user: { select: { id: true, name: true, email: true } },
+      },
+    }),
+
+    // Upcoming Sessions (Today only)
     db.findMany({
       model: "schedule",
       where: {
-        start_time: { gte: now.toDate() },
+        start_time: { gte: startOfDay, lte: endOfDay },
+        status: { not: "cancelled" },
+        ...modScheduleFilter,
       },
-      take: 5,
       orderBy: { start_time: "asc" },
       include: {
         subject: true,
@@ -279,75 +382,153 @@ export const getDashboard = asyncHandler(async (req, res, next) => {
         student: { include: { user: true } },
       },
     }),
-    
 
     // Sessions for last 7 days
     db.findMany({
       model: "schedule",
-      where: { start_time: { gte: sevenDaysAgo } },
+      where: {
+        start_time: { gte: sevenDaysAgo },
+        ...modScheduleFilter,
+      },
       select: { start_time: true },
     }),
 
-    // Activity Feed Sources
-    db.findMany({
-      model: "session_request",
-      take: 5,
-      orderBy: { createdAt: "desc" },
-      include: { requester: true },
+    // New requested stats
+    db.count({ model: "TeacherViolation" }),
+    db.count({ model: "moderatorViolation" }),
+    db.count({ model: "subscription_requests" }),
+    db.count({
+      model: "schedule",
+      where: { status: "completed", ...modScheduleFilter },
     }),
-    db.findMany({
-      model: "Review",
-      take: 5,
-      orderBy: { createdAt: "desc" },
-      include: { reviewer: true, reviewee: true },
-    }),
-    db.findMany({
-      model: "teacher",
-      take: 5,
-      orderBy: { createdAt: "desc" },
-      include: { user: true },
+    db.count({
+      model: "withdrawalRequest",
+      where: {
+        status: "pending",
+      },
     }),
   ]);
+
+  const totalRevenue = Number((totalRevenueAgg?._sum?.amount || 0).toFixed(2));
+  const monthlyRevenue = Number(
+    (monthlyRevenueAgg?._sum?.amount || 0).toFixed(2),
+  );
+
+  // Analyze Student Subscriptions & Session Counts (<= 2 sessions remaining OR <= 7 days left)
+  let activeSubscriptionsCount = 0;
+  let expiringSoonSubscriptionsCount = 0;
+  let expiredSubscriptionsCount = 0;
+  const expiringSoonSubscriptionsList = [];
+
+  for (const student of allStudents) {
+    const sub = allSubscriptions.find((s) => s.userId === student.user_id);
+    const durationDays = student.plan?.duration || sub?.plan?.duration || 30;
+    const startDate = dayjs(
+      sub?.startDate || sub?.createdAt || student.createdAt,
+    );
+    const endDate = startDate.add(durationDays, "day");
+    const daysLeft = endDate.diff(now, "day");
+    const sessionsRemaining = Number(student.sessions_remaining ?? 0);
+    const planName =
+      req.lang === "ar"
+        ? student.plan?.name_ar ||
+          sub?.plan?.name_ar ||
+          student.plan?.name_en ||
+          "الخطة"
+        : student.plan?.name_en ||
+          sub?.plan?.name_en ||
+          student.plan?.name_ar ||
+          "Plan";
+    const userName = student.user?.name || "Student";
+
+    // Expiring soon: remaining sessions is 1 or 2, OR remaining days is 7 or fewer (with active sessions)
+    const isExpiringSoon =
+      (sessionsRemaining > 0 && sessionsRemaining <= 2) ||
+      (sessionsRemaining > 0 && daysLeft >= 0 && daysLeft <= 7);
+
+    const isExpired =
+      sub?.status === "expired" ||
+      student.status === "rejected" ||
+      sessionsRemaining <= 0;
+
+    if (isExpiringSoon) {
+      expiringSoonSubscriptionsCount++;
+      expiringSoonSubscriptionsList.push({
+        id: student.id,
+        userName,
+        planName,
+        daysLeft: Math.max(0, daysLeft),
+        sessionsRemaining,
+        endDate: endDate.toDate(),
+      });
+    } else if (isExpired) {
+      expiredSubscriptionsCount++;
+    } else {
+      activeSubscriptionsCount++;
+    }
+  }
+
+  const subscriptionsStatus = {
+    active: activeSubscriptionsCount,
+    expiringSoon: expiringSoonSubscriptionsCount,
+    expired: expiredSubscriptionsCount,
+  };
 
   // Process Sessions per Day
   const sessionsPerDay = [];
   for (let i = 6; i >= 0; i--) {
     const date = now.subtract(i, "day").format("YYYY-MM-DD");
     const count = lastSevenDaysSessions.filter(
-      (s) => getNowUTC(s.start_time).format("YYYY-MM-DD") === date,
+      (s) =>
+        dayjs
+          .utc(s.start_time)
+          .tz(req.timezone || "Africa/Cairo")
+          .format("YYYY-MM-DD") === date,
     ).length;
     sessionsPerDay.push({ date, count });
   }
 
-  // Combine Activity Feed
-  const activityFeed = [
-    ...recentRequests.map((r) => ({
-      id: r.id,
-      type: "request",
-      title: `${r.requester?.name || "Someone"} requested a ${r.type}`,
-      time: r.createdAt,
-      user: r.requester?.name || "Someone",
-      avatar: null,
-    })),
-    ...recentReviews.map((rv) => ({
-      id: rv.id,
-      type: "review",
-      title: `Session completed with ${rv.reviewee?.name || "Teacher"}: "${rv.comment || ""}"`,
-      time: rv.createdAt,
-      user: rv.reviewer?.name || "Student",
-      avatar: null,
-    })),
-    ...newTeachers.map((t) => ({
-      id: t.id,
-      type: "onboarding",
-      title: `New Instructor Onboarded: ${t.user?.name || "Teacher"}`,
-      time: t.createdAt,
-      user: t.user?.name || "Teacher",
-      avatar: null,
-    })),
-  ]
-    .sort((a, b) => new Date(b.time) - new Date(a.time))
-    .slice(0, 10);
+  // Activity Feed (ONLY expiring subscriptions within 7 days OR <= 2 sessions remaining)
+  const activityFeed = expiringSoonSubscriptionsList
+    .map((sub) => {
+      let title = "";
+      if (sub.sessionsRemaining <= 2 && sub.sessionsRemaining > 0) {
+        title = req.t
+          ? req.t("SUBSCRIPTION_EXPIRING_SESSIONS", {
+              user: sub.userName,
+              plan: sub.planName,
+              sessions: sub.sessionsRemaining,
+            })
+          : `Subscription for ${sub.userName} (${sub.planName}) has ${sub.sessionsRemaining} session(s) remaining`;
+      } else if (sub.daysLeft > 0 && sub.daysLeft <= 7) {
+        title = req.t
+          ? req.t("SUBSCRIPTION_EXPIRING_DAYS", {
+              user: sub.userName,
+              plan: sub.planName,
+              days: sub.daysLeft,
+            })
+          : `Subscription for ${sub.userName} (${sub.planName}) will expire in ${sub.daysLeft} day(s)`;
+      } else {
+        title = req.t
+          ? req.t("SUBSCRIPTION_EXPIRING_GENERIC", {
+              user: sub.userName,
+              plan: sub.planName,
+            })
+          : `Subscription for ${sub.userName} (${sub.planName}) is expiring soon`;
+      }
+
+      return {
+        id: sub.id,
+        type: "subscription_expiring",
+        title,
+        time: sub.endDate,
+        user: sub.userName,
+        daysLeft: sub.daysLeft,
+        sessionsRemaining: sub.sessionsRemaining,
+        avatar: null,
+      };
+    })
+    .sort((a, b) => new Date(a.time) - new Date(a.time));
 
   return successResponse({
     res,
@@ -358,20 +539,37 @@ export const getDashboard = asyncHandler(async (req, res, next) => {
         totalTeachers: teachersCount,
         pendingRequests: pendingRequestsCount,
         todaySessions: todaySessionsCount,
+        totalReports: reportsCount,
+        totalFeedbacks: reportsCount,
+        totalRevenue,
+        monthlyRevenue,
+        subscriptions: subscriptionsStatus,
+        totalViolations: totalViolationsCount,
+        totalModeratorViolations: totalModeratorViolationsCount,
+        subscriptionRequests: subscriptionRequestsCount,
+        completedSessions: completedSessionsCount,
+        withdrawalRequests: withdrawalRequestsCount,
       },
+      subscriptionsStatus,
       sessionsPerDay,
       upcomingSessions: upcomingSessions.map((s) => ({
         id: s.id,
         title: s.title,
-        subject: s.subject?.name_en || "Subject",
+        subject:
+          req.lang === "ar"
+            ? s.subject?.name_ar || s.subject?.name_en || "مادة"
+            : s.subject?.name_en || s.subject?.name_ar || "Subject",
         time: s.start_time,
+        ...formatSchedules(s, req.timezone),
         teacher: s.teacher?.user?.name || "Teacher",
         student: s.student?.user?.name || "Student",
       })),
       activityFeed,
       activeUsers: {
-        students: studentsCount, // Simplified for now
+        students: studentsCount,
         instructors: teachersCount,
+        admins: stuffCount,
+        parents: parentsCount,
       },
     },
     status: 200,
@@ -468,15 +666,15 @@ export const deletePermission = asyncHandler(async (req, res, next) => {
     });
   }
 
-  await db.deleteOne({
-    model: "permission",
-    where: { id },
-  });
-
-  // Find roles that had this permission and invalidate their caches
+  // Find roles that had this permission before deleting
   const rolePermissions = await db.findMany({
     model: "rolePermission",
     where: { permissionId: id },
+  });
+
+  await db.deleteOne({
+    model: "permission",
+    where: { id },
   });
 
   for (const rp of rolePermissions) {
@@ -493,7 +691,7 @@ export const deletePermission = asyncHandler(async (req, res, next) => {
 
 export const assignPermissionsToRole = asyncHandler(async (req, res, next) => {
   const { roleId, permissionIds } = req.body;
-  if (!roleId || !permissionIds) {
+  if (!roleId || !permissionIds || !Array.isArray(permissionIds)) {
     return errorResponse({
       req,
       next,
@@ -502,29 +700,36 @@ export const assignPermissionsToRole = asyncHandler(async (req, res, next) => {
     });
   }
 
-  const exists = await db.findFirst({
-    model: "rolePermission",
-    where: { roleId, permissionId: { in: permissionIds } },
+  const role = await db.findOne({
+    model: "role",
+    where: { id: roleId },
   });
 
-  if (exists) {
+  if (!role) {
     return errorResponse({
       req,
       next,
-      message: "MAPPING_EXISTS",
-      status: 400,
+      message: "ROLE_NOT_FOUND",
+      status: 404,
     });
   }
 
-  // Create role-permission mappings
-  const mappings = permissionIds.map((permissionId) => ({
-    roleId,
-    permissionId, 
-  }));
+  const newMappings = await db.transaction(async (tx) => {
+    await tx.deleteMany({
+      model: "rolePermission",
+      where: { roleId },
+    });
 
-  const newMappings = await db.createMany({
-    model: "rolePermission",
-    data: mappings,
+    if (permissionIds.length > 0) {
+      const mappings = permissionIds.map((permissionId) => ({
+        roleId,
+        permissionId,
+      }));
+      await tx.createMany({
+        model: "rolePermission",
+        data: mappings,
+      });
+    }
   });
 
   // Invalidate cache for this role
@@ -539,45 +744,47 @@ export const assignPermissionsToRole = asyncHandler(async (req, res, next) => {
   });
 });
 
-export const revokePermissionsFromRole = asyncHandler(async (req, res, next) => {
-  const { roleId, permissionIds } = req.body;
-  if (!roleId || !permissionIds) {
-    return errorResponse({
-      req,
-      next,
-      message: "MISSING_FIELDS",
-      status: 400,
+export const revokePermissionsFromRole = asyncHandler(
+  async (req, res, next) => {
+    const { roleId, permissionIds } = req.body;
+    if (!roleId || !permissionIds) {
+      return errorResponse({
+        req,
+        next,
+        message: "MISSING_FIELDS",
+        status: 400,
+      });
+    }
+
+    const exists = await db.findMany({
+      model: "rolePermission",
+      where: { roleId, permissionId: { in: permissionIds } },
     });
-  }
 
-  const exists = await db.findFirst({
-    model: "rolePermission",
-    where: { roleId, permissionId: {in: permissionIds} },
-  });
+    if (exists.length === 0) {
+      return errorResponse({
+        req,
+        next,
+        message: "MAPPING_NOT_FOUND",
+        status: 404,
+      });
+    }
 
-  if (!exists) {
-    return errorResponse({
-      req,
-      next,
-      message: "MAPPING_NOT_FOUND",
-      status: 404,
+    await db.deleteMany({
+      model: "rolePermission",
+      where: {
+        id: { in: exists.map((r) => r.id) },
+      },
     });
-  }
 
-  await db.deleteMany({
-    model: "rolePermission",
-    where: {
-      id: {in: exists.map(r => r.id)},
-    },
-  });
+    // Invalidate cache for this role
+    await rbacCache.invalidateRoleCache(roleId);
 
-  // Invalidate cache for this role
-  await rbacCache.invalidateRoleCache(roleId);
-
-  return successResponse({
-    res,
-    req,
-    status: 200,
-    message: "REVOKE_SUCCESS",
-  });
-});
+    return successResponse({
+      res,
+      req,
+      status: 200,
+      message: "REVOKE_SUCCESS",
+    });
+  },
+);

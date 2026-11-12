@@ -1,22 +1,23 @@
 import { asyncHandler } from "../Utils/Response.js";
 import { verifyToken } from "../Utils/Token/token.js";
 import * as db from "../database/dbService.js";
-import { redis } from "../Utils/Radis/Connection.js";
+import { redis } from "../Utils/Redis/Connection.js";
+import { activeStatus } from "../Utils/Enums/status.js";
 
 export const authentication = () => {
   return asyncHandler(async (req, res, next) => {
     const { authorization } = req.headers;
     if (!authorization) {
-      return next(new Error("Unauthorized", { cause: 401 }));
+      return next(new Error("UNAUTHORIZED", { cause: 401 }));
     }
     const [bearer, token] = authorization.split(" ");
     if (!token || !bearer || bearer !== "Bearer") {
-      return next(new Error("Unauthorized", { cause: 401 }));
+      return next(new Error("UNAUTHORIZED", { cause: 401 }));
     }
 
     const decoded = verifyToken({ token });
     if (!decoded || !decoded.id) {
-      return next(new Error("Invalid Token", { cause: 401 }));
+      return next(new Error("INVALID_TOKEN", { cause: 401 }));
     }
 
     const cacheKey = `user:${decoded.id}`;
@@ -51,6 +52,15 @@ export const authentication = () => {
           },
           student: true,
           teacher: true,
+          moderator: {
+            include: {
+              studentModerators: {
+                select: {
+                  studentId: true,
+                },
+              },
+            },
+          },
         },
       });
 
@@ -66,11 +76,36 @@ export const authentication = () => {
 
     if (!user) {
       return next(
-        new Error("Unauthorized or Account Not Confirmed", { cause: 401 }),
+        new Error("USER_UNAUTHORIZED_OR_UNCONFIRMED", { cause: 401 }),
       );
+    }
+
+    if (user.status !== activeStatus.ACTIVE) {
+      return next(new Error("USER_NOT_ACTIVE", { cause: 401 }));
+    }
+
+    if (
+      user.teacher &&
+      (user.teacher.active === false || user.teacher.approved === false)
+    ) {
+      return next(new Error("TEACHER_NOT_ACTIVE", { cause: 401 }));
+    }
+
+    if (user.moderator && user.moderator.status !== activeStatus.ACTIVE) {
+      return next(new Error("MODERATOR_NOT_ACTIVE", { cause: 401 }));
+    }
+
+
+    if (user.student && user.student.active === false) {
+      return next(new Error("STUDENT_NOT_ACTIVE", { cause: 401 }));
     }
 
     req.user = user;
     next();
   });
 };
+
+
+export default authentication;
+
+

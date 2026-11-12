@@ -9,13 +9,9 @@ const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
-export const defaultDiscounts = {
-  lateDiscountRules: [
-    {
-      lateMinutes: 10,
-      discountPercentage: 5,
-    },
-  ],
+export const defaultSettingsData = {
+  paidSessionCount: 3,
+  studentCanJoin: false,
 };
 
 export async function seedSettings() {
@@ -25,11 +21,11 @@ export async function seedSettings() {
   if (existing) {
     await prisma.setting.update({
       where: { id: existing.id },
-      data: { discounts: defaultDiscounts },
+      data: defaultSettingsData,
     });
   } else {
     await prisma.setting.create({
-      data: { discounts: defaultDiscounts },
+      data: defaultSettingsData,
     });
   }
 

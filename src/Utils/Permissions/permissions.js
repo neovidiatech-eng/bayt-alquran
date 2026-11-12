@@ -1,3 +1,5 @@
+import * as db from "../../database/dbService.js";
+
 /**
  * RBAC Utility Methods
  */
@@ -12,6 +14,107 @@ export const ADMIN_ROLES = ["admin", "super_admin"];
  */
 export const isAdmin = (user) => {
   return ADMIN_ROLES.includes(user?.role?.name);
+};
+
+/**
+ * Checks if a user is a moderator.
+ *
+ * @param {Object} user - The user object.
+ * @returns {boolean}
+ */
+export const isModerator = (user) => {
+  if (!user) return false;
+  const roleName = user.role?.name?.toLowerCase();
+  return (
+    roleName === "moderator" || (Boolean(user.moderator) && !isAdmin(user))
+  );
+};
+
+/**
+ * Retrieves the assigned student IDs for a moderator.
+ * Returns null if the user is not a moderator.
+ * Returns an array of student IDs (possibly empty) if the user is a moderator.
+ *
+ * @param {Object} user - The user object.
+ * @returns {Promise<string[]|null>}
+ */
+export const getModeratorStudentIds = async (user) => {
+  if (!isModerator(user)) return null;
+
+  if (Array.isArray(user?.moderator?.studentModerators)) {
+    return user.moderator.studentModerators
+      .map((sm) => sm.studentId || sm.student?.id)
+      .filter(Boolean);
+  }
+
+  let moderatorId = user?.moderator?.id;
+  if (!moderatorId) {
+    const mod = await db.findOne({
+      model: "moderator",
+      where: { userId: user.id },
+      select: { id: true },
+    });
+    if (!mod) return [];
+    moderatorId = mod.id;
+  }
+
+  const relations = await db.findMany({
+    model: "student_moderator",
+    where: { moderatorId },
+    select: { studentId: true },
+  });
+
+  return relations.map((r) => r.studentId).filter(Boolean);
+};
+
+/**
+ * Helper to build a Prisma schedule filter for a moderator's assigned students.
+ *
+ * @param {string[]} assignedStudentIds
+ * @param {string} [queryStudentId]
+ * @returns {Object}
+ */
+export const buildStudentScheduleFilter = (
+  assignedStudentIds,
+  queryStudentId,
+) => {
+  if (queryStudentId) {
+    const effectiveStudentId = assignedStudentIds.includes(queryStudentId)
+      ? queryStudentId
+      : "__none__";
+    return {
+      OR: [
+        { studentId: effectiveStudentId },
+        { groupStudents: { some: { studentId: effectiveStudentId } } },
+      ],
+    };
+  }
+  return {
+    OR: [
+      { studentId: { in: assignedStudentIds } },
+      { groupStudents: { some: { studentId: { in: assignedStudentIds } } } },
+    ],
+  };
+};
+
+/**
+ * Helper to build a Prisma exam/homework filter for a moderator's assigned students.
+ *
+ * @param {string[]} assignedStudentIds
+ * @param {string} [queryStudentId]
+ * @returns {Object}
+ */
+export const buildStudentExamFilter = (
+  assignedStudentIds,
+  queryStudentId,
+) => {
+  if (queryStudentId) {
+    const effectiveStudentId = assignedStudentIds.includes(queryStudentId)
+      ? queryStudentId
+      : "__none__";
+    return { studentId: effectiveStudentId };
+  }
+  return { studentId: { in: assignedStudentIds } };
 };
 
 /**
@@ -79,7 +182,9 @@ export const hasAllPermissions = (user, permissionCodes) => {
 export const ROLES = {
   STUDENT: "student",
   TEACHER: "teacher",
+  PARENT: "parent",
   ADMIN: "admin",
   STAFF: "staff",
   SUPER_ADMIN: "super_admin",
+  MODERATOR: "moderator",
 };

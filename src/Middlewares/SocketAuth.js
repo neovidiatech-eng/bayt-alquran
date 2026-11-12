@@ -7,13 +7,12 @@ export const socketAuthentication = async (socket, next) => {
 
     const token = socket.handshake.auth.token;
     if (!token || typeof token !== "string") {
-      return next(new Error("Token Missed or Invalid", { cause: 401 }));
+      return next(new Error("TOKEN_MISSED_OR_INVALID", { cause: 401 }));
     }
 
     const decoded = verifyToken({ token });
     if (!decoded || !decoded.id) {
-      console.log(decoded);
-      return next(new Error("Token signature", { cause: 401 }));
+      return next(new Error("TOKEN_SIGNATURE_INVALID", { cause: 401 }));
     }
 
     
@@ -28,10 +27,9 @@ export const socketAuthentication = async (socket, next) => {
         role: true,
       },
     });
-    console.log(user);
     
     if (!user) {
-      return next(new Error("Invalid Token database", { cause: 401 }));
+      return next(new Error("TOKEN_USER_NOT_FOUND", { cause: 401 }));
     }
 
     socket.user = user;

@@ -1,30 +1,26 @@
-import nodemailer from "nodemailer";
+import { BrevoClient } from "@getbrevo/brevo";
 
-export const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 587,
-  secure: false, // port 587 uses STARTTLS
-  pool: true, // تفعيل التجميع لإعادة استخدام الاتصال وتجنب الـ timeout
-  maxConnections: 5,
-  maxMessages: 100,
-  auth: {
-    user: process.env.APP_EMAIL,
-    pass: process.env.APP_PASSWORD,
-  },
-  tls: {
-    rejectUnauthorized: false,
-  },
-  // timeout كبير لتجنب disconnect
-  connectionTimeout: 10000,
-}); 
+let brevoClientInstance = null;
 
-// فحص الاتصال عند التشغيل لضمان استجابة السيرفر
-transporter.verify((error, success) => {
-  if (error) {
-    console.error("❌ SMTP Connection Error:", error.message);
-  } else {
-    console.log("📧 SMTP Server is ready to take messages");
+export const getBrevoClient = () => {
+  if (!process.env.BREVO_API_KEY) {
+    console.error("❌ BREVO_API_KEY is missing from environment variables");
+    return null;
   }
-});
+  if (!brevoClientInstance) {
+    try {
+      brevoClientInstance = new BrevoClient({
+        apiKey: process.env.BREVO_API_KEY,
+      });
+      console.log("✅ Brevo client initialized successfully");
+    } catch (error) {
+      console.error("❌ Failed to initialize Brevo client:", error.message);
+      return null;
+    }
+  }
+
+  return brevoClientInstance;
+};
+
 
 

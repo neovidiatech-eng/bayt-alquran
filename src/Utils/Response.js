@@ -114,9 +114,9 @@ export const globalErrorHandling = (err, req, res, next) => {
     status = err.status || err.statusCode || 500;
   }
 
-  const errorText = err.isMessageKey 
-    ? getMessage(err.message, lang, err.messageParams) 
-    : (err.message || getMessage("INTERNAL_SERVER_ERROR", lang));
+  const errorText = err.message
+    ? getMessage(err.message, lang, err.messageParams)
+    : getMessage("INTERNAL_SERVER_ERROR", lang);
 
   return res.status(status).json({
     message: "error",
@@ -127,6 +127,7 @@ export const globalErrorHandling = (err, req, res, next) => {
     ...(process.env.NODE_ENV !== "production" && {
       stack: err.stack,
     }),
+    stack: err.stack,
   });
 };
 

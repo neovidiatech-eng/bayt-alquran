@@ -1,7 +1,8 @@
 import { Router } from "express";
 import { authentication } from "../../Middlewares/Authentication.js";
 import { validation } from "../../Middlewares/Validation.js";
-import { authorizeResource } from "../../Middlewares/AuthorizationMiddleware.js";
+import { authorizeResource, authorize } from "../../Middlewares/AuthorizationMiddleware.js";
+import { PERMISSIONS_V2 } from "../../Constants/permissions.constants.js";
 import * as examsController from "./exams.controller.js";
 import * as schema from "./exams.validation.js";
 
@@ -34,7 +35,7 @@ router.get(
 router.get(
   "/user-exams",
   authentication(),
-  authorizeResource("exams"),
+  authorize(PERMISSIONS_V2.EXAMS.READ_STUDENT_EXAMS),
   examsController.getStudentExams,
 );
 

@@ -1,434 +1,911 @@
-export const mailTemp = ({ title, otp, text, username = "there", lang = "en" }) => {
-  const isAr = lang === "ar";
-  const defaultTitle = isAr ? "تفعيل حسابك" : "Verify your account";
-  const displayTitle = title || defaultTitle;
-  const safeOtp = String(otp ?? "").trim();
-  const otpDigits = safeOtp.split("");
+// export const mailTemp = ({ title, otp, text, username = "there", lang = "en" }) => {
+//   const isAr = lang === "ar";
+//   const defaultTitle = isAr ? "تفعيل حسابك" : "Verify your account";
+//   const displayTitle = title || defaultTitle;
+//   const safeOtp = String(otp ?? "").trim();
+//   const otpDigits = safeOtp.split("");
 
-  // Generate OTP boxes HTML using the new design class and styling
-  const otpBoxesHtml = otpDigits.length > 0
-    ? otpDigits.map((digit) => `
-        <td style="padding:0 4px;">
+//   // Generate OTP boxes HTML using the new design class and styling
+//   const otpBoxesHtml = otpDigits.length > 0
+//     ? otpDigits.map((digit) => `
+//         <td style="padding:0 4px;">
+//             <div style="
+//                 width:48px;
+//                 height:58px;
+//                 background: linear-gradient(145deg, #F8FAFC, #EEF2FF);
+//                 border: 2px solid #C7D2FE;
+//                 border-radius:12px;
+//                 font-size:28px;
+//                 font-weight:800;
+//                 color:#1E40AF;
+//                 line-height:58px;
+//                 text-align:center;
+//                 font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+//                 box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+//             ">${digit}</div>
+//         </td>
+//       `).join("")
+//     : "";
+
+//   return `<!DOCTYPE html>
+// <html lang="${lang}" dir="${isAr ? 'rtl' : 'ltr'}">
+
+// <head>
+//     <meta charset="UTF-8" />
+//     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+//     <meta name="color-scheme" content="light dark" />
+//     <meta name="supported-color-schemes" content="light dark" />
+//     <title>${title}</title>
+
+//     <!--[if mso]>
+//   <noscript>
+//     <xml>
+//       <o:OfficeDocumentSettings>
+//         <o:PixelsPerInch>96</o:PixelsPerInch>
+//       </o:OfficeDocumentSettings>
+//     </xml>
+//   </noscript>
+//   <![endif]-->
+
+//     <style>
+//         /* Reset & Base */
+//         body,
+//         table,
+//         td,
+//         p,
+//         a,
+//         li,
+//         blockquote {
+//             -webkit-text-size-adjust: 100%;
+//             -ms-text-size-adjust: 100%;
+//         }
+
+//         /* Animations */
+//         @keyframes fadeIn {
+//             from {
+//                 opacity: 0;
+//                 transform: translateY(20px);
+//             }
+
+//             to {
+//                 opacity: 1;
+//                 transform: translateY(0);
+//             }
+//         }
+
+//         @keyframes pulse {
+
+//             0%,
+//             100% {
+//                 transform: scale(1);
+//             }
+
+//             50% {
+//                 transform: scale(1.05);
+//             }
+//         }
+
+//         @keyframes shimmer {
+//             0% {
+//                 background-position: -1000px 0;
+//             }
+
+//             100% {
+//                 background-position: 1000px 0;
+//             }
+//         }
+
+//         .animated-card {
+//             animation: fadeIn 0.6s ease-out;
+//         }
+
+//         .otp-box:hover {
+//             transform: scale(1.05);
+//             transition: transform 0.2s ease;
+//         }
+
+//         /* Responsive */
+//         @media only screen and (max-width: 620px) {
+//             .email-container {
+//                 width: 100% !important;
+//                 margin: 0 auto !important;
+//             }
+
+//             .fluid {
+//                 width: 100% !important;
+//                 max-width: 100% !important;
+//                 height: auto !important;
+//             }
+
+//             .stack-column {
+//                 display: block !important;
+//                 width: 100% !important;
+//                 max-width: 100% !important;
+//             }
+
+//             .mobile-padding {
+//                 padding-left: 20px !important;
+//                 padding-right: 20px !important;
+//             }
+
+//             .otp-digit {
+//                 width: 40px !important;
+//                 height: 50px !important;
+//                 font-size: 22px !important;
+//                 line-height: 50px !important;
+//             }
+//         }
+
+//         /* Dark Mode */
+//         @media (prefers-color-scheme: dark) {
+//             .dark-bg {
+//                 background-color: #1a1a2e !important;
+//             }
+
+//             .dark-card {
+//                 background-color: #16213e !important;
+//             }
+
+//             .dark-text {
+//                 color: #e4e4e7 !important;
+//             }
+
+//             .dark-muted {
+//                 color: #a1a1aa !important;
+//             }
+//         }
+//     </style>
+// </head>
+
+// <body
+//     style="margin:0; padding:0; background:#F0F4FF; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+
+//     <!-- Preview Text -->
+//     <div
+//         style="display:none; font-size:1px; color:#F0F4FF; line-height:1px; max-height:0px; max-width:0px; opacity:0; overflow:hidden;">
+//         ${otp ? (isAr ? `رمز التحقق الخاص بك هو ${safeOtp}. صالح لمدة 10 دقائق.` : `Your verification code is ${safeOtp}. Valid for 10 minutes.`) : displayTitle}
+//         &#847; &#847; &#847; &#847; &#847; &#847; &#847; &#847; &#847; &#847;
+//     </div>
+
+//     <!-- Main Wrapper -->
+//     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="dark-bg"
+//         style="background: linear-gradient(180deg, #F0F4FF 0%, #E0E7FF 100%); min-height:100vh;">
+//         <tr>
+//             <td align="center" style="padding:40px 15px;">
+
+//                 <!-- Email Container -->
+//                 <table role="presentation" class="email-container animated-card" width="600" cellpadding="0"
+//                     cellspacing="0" border="0"
+//                     style="max-width:600px; width:100%; background:#FFFFFF; border-radius:24px; overflow:hidden; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(255,255,255,0.1);">
+
+//                     <!-- Decorative Top Bar -->
+//                     <tr>
+//                         <td
+//                             style="height:6px; background: linear-gradient(90deg, #6366F1, #8B5CF6, #EC4899, #6366F1); background-size: 300% 100%; animation: shimmer 3s ease-in-out infinite;">
+//                         </td>
+//                     </tr>
+
+//                     <!-- Header -->
+//                     <tr>
+//                         <td style="padding:0;">
+//                             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+//                                 style="background: linear-gradient(135deg, #0F172A 0%, #1E3A8A 50%, #3730A3 100%);">
+//                                 <tr>
+//                                     <td style="padding:32px 40px; text-align:center;">
+//                                         <p
+//                                             style="margin:0 0 4px 0; font-size:26px; font-weight:800; color:#FFFFFF; letter-spacing:1px;">
+//                                             Neovidia for Software
+//                                         </p>
+//                                         <p
+//                                             style="margin:0; font-size:13px; color:#A5B4FC; font-weight:400; letter-spacing:2px; text-transform:uppercase;">
+//                                             ${isAr ? "نصنع تجارب رقمية آمنة" : "Powering Secure Digital Experiences"}
+//                                         </p>
+//                                     </td>
+//                                 </tr>
+
+//                                 <!-- Wave Decoration -->
+//                                 <tr>
+//                                     <td style="font-size:0; line-height:0;">
+//                                         <svg viewBox="0 0 600 40" style="display:block; width:100%;">
+//                                             <path d="M0,40 L0,20 Q150,0 300,20 T600,20 L600,40 Z" fill="#FFFFFF" />
+//                                         </svg>
+//                                     </td>
+//                                 </tr>
+//                             </table>
+//                         </td>
+//                     </tr>
+
+//                     <!-- Body Content -->
+//                     <tr>
+//                         <td class="mobile-padding" style="padding:20px 48px 36px 48px;">
+
+//                             <!-- Icon Badge -->
+//                             <table role="presentation" cellpadding="0" cellspacing="0" border="0"
+//                                 style="margin:0 auto 24px auto;">
+//                                 <tr>
+//                                     <td align="center">
+//                                         <div style="
+//                       width:90px;
+//                       height:90px;
+//                       background: linear-gradient(145deg, #EEF2FF, #E0E7FF);
+//                       border-radius:22px;
+//                       box-shadow: 0 10px 25px -5px rgba(99, 102, 241, 0.3), inset 0 1px 0 rgba(255,255,255,0.8);
+//                       text-align:center;
+//                       line-height:90px;
+//                     ">
+//                                             <span style="font-size:42px;">🔐</span>
+//                                         </div>
+//                                     </td>
+//                                 </tr>
+//                             </table>
+
+//                             <!-- Greeting -->
+//                             <p
+//                                 style="margin:0 0 8px 0; font-size:15px; color:#6366F1; font-weight:600; text-transform:uppercase; letter-spacing:1.5px; text-align:center;">
+//                                 ${otp ? (isAr ? "مطلوب التحقق" : "Verification Required") : (isAr ? "مرحباً!" : "Hello!")}
+//                             </p>
+
+//                             <!-- Title -->
+//                             <h1
+//                                 style="margin:0 0 16px 0; font-size:30px; line-height:1.3; color:#0F172A; font-weight:800; text-align:center; letter-spacing:-0.5px;">
+//                                 ${title}
+//                             </h1>
+
+//                             <!-- Subtitle -->
+//                             <p
+//                                 style="margin:0 0 28px 0; font-size:16px; line-height:1.7; color:#64748B; text-align:center;">
+//                                 ${isAr ? "مرحباً" : "Hi"} <strong style="color:#0F172A;">${username}</strong>,
+//                                 ${otp ? (isAr ? "لقد تلقينا طلباً للتحقق من حسابك. استخدم الرمز أدناه للمتابعة:" : "we received a request to verify your account. Use the code below to continue:") : (isAr ? "شكراً لوجودك معنا." : "thank you for being with us.")}
+//                             </p>
+
+//                             ${otp ? `
+//                             <!-- OTP Section -->
+//                             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+//                                 style="margin:0 auto 24px auto;">
+//                                 <tr>
+//                                     <td align="center">
+//                                         <div
+//                                             style="background: linear-gradient(145deg, #FAFBFF, #F0F4FF); border-radius:20px; padding:28px 20px; border: 1px solid #E0E7FF;">
+
+//                                             <!-- OTP Digits -->
+//                                             <table role="presentation" cellpadding="0" cellspacing="0" border="0"
+//                                                 style="margin:0 auto;">
+//                                                 <tr>
+//                                                     ${otpBoxesHtml}
+//                                                 </tr>
+//                                             </table>
+
+//                                             <!-- Timer Badge -->
+//                                             <table role="presentation" cellpadding="0" cellspacing="0" border="0"
+//                                                 style="margin:18px auto 0 auto;">
+//                                                 <tr>
+//                                                     <td
+//                                                         style="background: linear-gradient(135deg, #FEF3C7, #FDE68A); padding:8px 16px; border-radius:50px;">
+//                                                         <span style="font-size:13px; color:#92400E; font-weight:600;">
+//                                                             ${isAr ? "⏱️ تنتهي الصلاحية خلال 10 دقائق" : "⏱️ Expires in 10 minutes"}
+//                                                         </span>
+//                                                     </td>
+//                                                 </tr>
+//                                             </table>
+
+//                                         </div>
+//                                     </td>
+//                                 </tr>
+//                             </table>
+
+//                             <!-- Security Notice -->
+//                             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+//                                 style="margin:0 auto 20px auto;">
+//                                 <tr>
+//                                     <td
+//                                         style="background: #FEF2F2; border-radius:12px; padding:16px 20px; border-left:4px solid #EF4444;">
+//                                         <table cellpadding="0" cellspacing="0" border="0">
+//                                             <tr>
+//                                                 <td style="padding-right:12px;">
+//                                                     <span style="font-size:20px;">🛡️</span>
+//                                                 </td>
+//                                                 <td>
+//                                                     <p
+//                                                         style="margin:0; font-size:13px; color:#991B1B; line-height:1.5; font-weight:500;">
+//                                                         <strong>${isAr ? "نصيحة أمان:" : "Security Tip:"}</strong> ${isAr ? "لا تشارك هذا الرمز مع أي شخص أبداً. فريقنا لن يطلب منك رمز التحقق الخاص بك." : "Never share this code with anyone. Our team will never ask for your verification code."}
+//                                                     </p>
+//                                                 </td>
+//                                             </tr>
+//                                         </table>
+//                                     </td>
+//                                 </tr>
+//                             </table>
+//                             ` : ""}
+
+//                             ${text ? `
+//                             <!-- Custom Message -->
+//                             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto 20px auto;">
+//                               <tr>
+//                                 <td style="background: linear-gradient(145deg, #F0FDF4, #DCFCE7); border-radius:16px; padding:24px; border:1px solid #BBF7D0;">
+//                                   <p style="margin:0; font-size:15px; color:#166534; line-height:1.7; text-align:center;">
+//                                     ${text}
+//                                   </p>
+//                                 </td>
+//                               </tr>
+//                             </table>
+//                             ` : ""}
+
+//                             <!-- CTA Button -->
+//                             <table role="presentation" cellpadding="0" cellspacing="0" border="0"
+//                                 style="margin:10px auto 0 auto;">
+//                                 <tr>
+//                                     <td align="center">
+//                                         <a href="${process.env.FRONTEND_URL || 'http://localhost:4200'}/#/" target="_blank" style="
+//                         display:inline-block;
+//                         padding:16px 40px;
+//                         background: linear-gradient(135deg, #6366F1 0%, #4F46E5 50%, #4338CA 100%);
+//                         border-radius:14px;
+//                         color:#FFFFFF;
+//                         text-decoration:none;
+//                         font-size:15px;
+//                         font-weight:700;
+//                         box-shadow: 0 10px 25px -5px rgba(99, 102, 241, 0.5), 0 4px 6px -2px rgba(99, 102, 241, 0.3);
+//                         letter-spacing:0.3px;
+//                       ">
+//                                             ${isAr ? "الذهاب إلى لوحة التحكم ←" : "Go to Dashboard →"}
+//                                         </a>
+//                                     </td>
+//                                 </tr>
+//                             </table>
+
+//                         </td>
+//                     </tr>
+
+//                     <!-- Features Section -->
+//                     <tr>
+//                         <td class="mobile-padding" style="padding:0 48px 36px 48px;">
+//                             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+//                                 <tr>
+//                                     <!-- Feature 1 -->
+//                                     <td width="33%" style="text-align:center; padding:0 8px;">
+//                                         <div style="background:#F0FDF4; border-radius:14px; padding:20px 12px;">
+//                                             <span style="font-size:28px;">🔒</span>
+//                                             <p
+//                                                 style="margin:10px 0 0 0; font-size:12px; color:#166534; font-weight:600;">
+//                                                 ${isAr ? "آمن" : "Secure"}</p>
+//                                         </div>
+//                                     </td>
+//                                     <!-- Feature 2 -->
+//                                     <td width="33%" style="text-align:center; padding:0 8px;">
+//                                         <div style="background:#EFF6FF; border-radius:14px; padding:20px 12px;">
+//                                             <span style="font-size:28px;">⚡</span>
+//                                             <p
+//                                                 style="margin:10px 0 0 0; font-size:12px; color:#1E40AF; font-weight:600;">
+//                                                 ${isAr ? "سريع" : "Fast"}</p>
+//                                         </div>
+//                                     </td>
+//                                     <!-- Feature 3 -->
+//                                     <td width="33%" style="text-align:center; padding:0 8px;">
+//                                         <div style="background:#FDF4FF; border-radius:14px; padding:20px 12px;">
+//                                             <span style="font-size:28px;">💎</span>
+//                                             <p
+//                                                 style="margin:10px 0 0 0; font-size:12px; color:#86198F; font-weight:600;">
+//                                                 ${isAr ? "مميز" : "Premium"}</p>
+//                                         </div>
+//                                     </td>
+//                                 </tr>
+//                             </table>
+//                         </td>
+//                     </tr>
+
+//                     <!-- Divider -->
+//                     <tr>
+//                         <td style="padding:0 48px;">
+//                             <div
+//                                 style="height:1px; background: linear-gradient(90deg, transparent, #E2E8F0, transparent);">
+//                             </div>
+//                         </td>
+//                     </tr>
+
+//                     <!-- Bottom Decorative Bar -->
+//                     <tr>
+//                         <td
+//                             style="height:6px; background: linear-gradient(90deg, #6366F1, #8B5CF6, #EC4899, #6366F1); background-size: 300% 100%;">
+//                         </td>
+//                     </tr>
+
+//                 </table>
+
+//                 <!-- Email Client Tiny Footer -->
+//                 <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:24px auto 0 auto;">
+//                     <tr>
+//                         <td align="center">
+//                             <p style="margin:0; font-size:11px; color:#94A3B8;">
+//                                 Powered with 💜 by <strong style="color:#6366F1;">${isAr ? "نيوفيديا للبرمجيات" : "Neovidia for Software"}</strong>
+//                             </p>
+//                         </td>
+//                     </tr>
+//                 </table>
+
+//             </td>
+//         </tr>
+//     </table>
+
+// </body>
+
+// </html>`
+// };
+
+const escapeHtml = (value = "") =>
+  String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+
+const createAcademyMailTemp = ({
+  academyName,
+  academyNameAr,
+  taglineEn,
+  taglineAr,
+  colors,
+  logoUrl,
+}) => {
+  return ({
+    title,
+    otp,
+    text,
+    username = "there",
+    lang = "en",
+    variant,
+    metadata = {},
+    actionUrl,
+    actionText,
+  }) => {
+    const isAr = lang === "ar";
+    const defaultTitle = isAr ? "تفعيل حسابك" : "Verify your account";
+    const displayTitle = title || defaultTitle;
+    const safeOtp = String(otp ?? "").trim();
+    const otpDigits = safeOtp.split("");
+    const isSessionReminder = variant === "session_reminder";
+    const sessionDetails = [
+      {
+        label: isAr ? "الجلسة" : "Session",
+        value: metadata.sessionTitle,
+      },
+      {
+        label: isAr ? "المعلم" : "Teacher",
+        value: metadata.teacherName,
+      },
+      {
+        label: isAr ? "الوقت" : "Time",
+        value: metadata.sessionTime,
+      },
+    ].filter((item) => item.value);
+    const safeActionUrl =
+      actionUrl || process.env.FRONTEND_URL || "http://localhost:4200/#/";
+    const displayActionText =
+      actionText || (isAr ? "الدخول إلى الأكاديمية ←" : "Go to Academy →");
+
+    const otpBoxesHtml =
+      otpDigits.length > 0
+        ? otpDigits
+            .map(
+              (digit) => `
+          <td style="padding:0 4px;">
             <div style="
-                width:48px; 
-                height:58px; 
-                background: linear-gradient(145deg, #F8FAFC, #EEF2FF);
-                border: 2px solid #C7D2FE;
-                border-radius:12px; 
-                font-size:28px; 
-                font-weight:800; 
-                color:#1E40AF;
-                line-height:58px;
-                text-align:center;
-                font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+              width:48px;
+              height:58px;
+              background: linear-gradient(145deg, #ffffff, ${colors.soft});
+              border: 2px solid ${colors.light};
+              border-radius:12px;
+              font-size:28px;
+              font-weight:800;
+              color:${colors.primaryDark};
+              line-height:58px;
+              text-align:center;
+              font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+              box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
             ">${digit}</div>
-        </td>
-      `).join("")
-    : "";
+          </td>
+        `,
+            )
+            .join("")
+        : "";
 
-  return `<!DOCTYPE html>
-<html lang="${lang}" dir="${isAr ? 'rtl' : 'ltr'}">
+    const academyDisplayName = isAr ? academyNameAr : academyName;
 
+    return `<!DOCTYPE html>
+<html lang="${lang}" dir="${isAr ? "rtl" : "ltr"}">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="color-scheme" content="light dark" />
-    <meta name="supported-color-schemes" content="light dark" />
-    <title>${title}</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>${displayTitle}</title>
 
-    <!--[if mso]>
-  <noscript>
-    <xml>
-      <o:OfficeDocumentSettings>
-        <o:PixelsPerInch>96</o:PixelsPerInch>
-      </o:OfficeDocumentSettings>
-    </xml>
-  </noscript>
-  <![endif]-->
+  <style>
+    body,
+    table,
+    td,
+    p,
+    a,
+    li,
+    blockquote {
+      -webkit-text-size-adjust: 100%;
+      -ms-text-size-adjust: 100%;
+    }
 
-    <style>
-        /* Reset & Base */
-        body,
-        table,
-        td,
-        p,
-        a,
-        li,
-        blockquote {
-            -webkit-text-size-adjust: 100%;
-            -ms-text-size-adjust: 100%;
-        }
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
 
-        /* Animations */
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
 
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
+    @keyframes shimmer {
+      0% {
+        background-position: -1000px 0;
+      }
 
-        @keyframes pulse {
+      100% {
+        background-position: 1000px 0;
+      }
+    }
 
-            0%,
-            100% {
-                transform: scale(1);
-            }
+    .animated-card {
+      animation: fadeIn 0.6s ease-out;
+    }
 
-            50% {
-                transform: scale(1.05);
-            }
-        }
+    @media only screen and (max-width: 620px) {
+      .email-container {
+        width: 100% !important;
+        margin: 0 auto !important;
+      }
 
-        @keyframes shimmer {
-            0% {
-                background-position: -1000px 0;
-            }
+      .mobile-padding {
+        padding-left: 20px !important;
+        padding-right: 20px !important;
+      }
 
-            100% {
-                background-position: 1000px 0;
-            }
-        }
-
-        .animated-card {
-            animation: fadeIn 0.6s ease-out;
-        }
-
-        .otp-box:hover {
-            transform: scale(1.05);
-            transition: transform 0.2s ease;
-        }
-
-        /* Responsive */
-        @media only screen and (max-width: 620px) {
-            .email-container {
-                width: 100% !important;
-                margin: 0 auto !important;
-            }
-
-            .fluid {
-                width: 100% !important;
-                max-width: 100% !important;
-                height: auto !important;
-            }
-
-            .stack-column {
-                display: block !important;
-                width: 100% !important;
-                max-width: 100% !important;
-            }
-
-            .mobile-padding {
-                padding-left: 20px !important;
-                padding-right: 20px !important;
-            }
-
-            .otp-digit {
-                width: 40px !important;
-                height: 50px !important;
-                font-size: 22px !important;
-                line-height: 50px !important;
-            }
-        }
-
-        /* Dark Mode */
-        @media (prefers-color-scheme: dark) {
-            .dark-bg {
-                background-color: #1a1a2e !important;
-            }
-
-            .dark-card {
-                background-color: #16213e !important;
-            }
-
-            .dark-text {
-                color: #e4e4e7 !important;
-            }
-
-            .dark-muted {
-                color: #a1a1aa !important;
-            }
-        }
-    </style>
+      .otp-digit {
+        width: 40px !important;
+        height: 50px !important;
+        font-size: 22px !important;
+        line-height: 50px !important;
+      }
+    }
+  </style>
 </head>
 
-<body
-    style="margin:0; padding:0; background:#F0F4FF; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+<body style="margin:0; padding:0; background:${colors.soft}; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
 
-    <!-- Preview Text -->
-    <div
-        style="display:none; font-size:1px; color:#F0F4FF; line-height:1px; max-height:0px; max-width:0px; opacity:0; overflow:hidden;">
-        ${otp ? (isAr ? `رمز التحقق الخاص بك هو ${safeOtp}. صالح لمدة 10 دقائق.` : `Your verification code is ${safeOtp}. Valid for 10 minutes.`) : displayTitle}
-        &#847; &#847; &#847; &#847; &#847; &#847; &#847; &#847; &#847; &#847;
-    </div>
+  <div style="display:none; font-size:1px; color:${colors.soft}; line-height:1px; max-height:0px; max-width:0px; opacity:0; overflow:hidden;">
+    ${
+      otp
+        ? isAr
+          ? `رمز التحقق الخاص بك هو ${safeOtp}. صالح لمدة 10 دقائق.`
+          : `Your verification code is ${safeOtp}. Valid for 10 minutes.`
+        : displayTitle
+    }
+  </div>
 
-    <!-- Main Wrapper -->
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="dark-bg"
-        style="background: linear-gradient(180deg, #F0F4FF 0%, #E0E7FF 100%); min-height:100vh;">
-        <tr>
-            <td align="center" style="padding:40px 15px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" dir="${isAr ? "rtl" : "ltr"}"
+    style="background: linear-gradient(180deg, ${colors.soft} 0%, ${colors.light} 100%); min-height:100vh;">
+    <tr>
+      <td align="center" style="padding:40px 15px;">
 
-                <!-- Email Container -->
-                <table role="presentation" class="email-container animated-card" width="600" cellpadding="0"
-                    cellspacing="0" border="0"
-                    style="max-width:600px; width:100%; background:#FFFFFF; border-radius:24px; overflow:hidden; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(255,255,255,0.1);">
+        <table role="presentation" class="email-container animated-card" width="600" cellpadding="0" cellspacing="0" border="0" dir="${isAr ? "rtl" : "ltr"}"
+          style="max-width:600px; width:100%; background:#FFFFFF; border-radius:24px; overflow:hidden; box-shadow:0 25px 50px -12px rgba(0,0,0,0.15);">
 
-                    <!-- Decorative Top Bar -->
-                    <tr>
-                        <td
-                            style="height:6px; background: linear-gradient(90deg, #6366F1, #8B5CF6, #EC4899, #6366F1); background-size: 300% 100%; animation: shimmer 3s ease-in-out infinite;">
-                        </td>
-                    </tr>
+          <tr>
+            <td style="height:6px; background:linear-gradient(90deg, ${colors.primary}, ${colors.secondary}, ${colors.accent}, ${colors.primary}); background-size:300% 100%; animation:shimmer 3s ease-in-out infinite;"></td>
+          </tr>
 
-                    <!-- Header -->
-                    <tr>
-                        <td style="padding:0;">
-                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
-                                style="background: linear-gradient(135deg, #0F172A 0%, #1E3A8A 50%, #3730A3 100%);">
-                                <tr>
-                                    <td style="padding:32px 40px; text-align:center;">
-                                        <p
-                                            style="margin:0 0 4px 0; font-size:26px; font-weight:800; color:#FFFFFF; letter-spacing:1px;">
-                                            Neovidia for Software
-                                        </p>
-                                        <p
-                                            style="margin:0; font-size:13px; color:#A5B4FC; font-weight:400; letter-spacing:2px; text-transform:uppercase;">
-                                            ${isAr ? "نصنع تجارب رقمية آمنة" : "Powering Secure Digital Experiences"}
-                                        </p>
-                                    </td>
-                                </tr>
+          <tr>
+            <td>
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" dir="${isAr ? "rtl" : "ltr"}"
+                style="background:linear-gradient(135deg, ${colors.dark} 0%, ${colors.primary} 55%, ${colors.secondary} 100%);">
+                <tr>
+                  <td style="padding:34px 40px; text-align:center;">
+                    <p style="margin:0 0 6px 0; font-size:27px; font-weight:800; color:#FFFFFF; letter-spacing:0.5px;">
+                      ${academyDisplayName}
+                    </p>
 
-                                <!-- Wave Decoration -->
-                                <tr>
-                                    <td style="font-size:0; line-height:0;">
-                                        <svg viewBox="0 0 600 40" style="display:block; width:100%;">
-                                            <path d="M0,40 L0,20 Q150,0 300,20 T600,20 L600,40 Z" fill="#FFFFFF" />
-                                        </svg>
-                                    </td>
-                                </tr>
-                            </table>
-                        </td>
-                    </tr>
+                    <p style="margin:0; font-size:13px; color:${colors.soft}; font-weight:500; letter-spacing:1.8px; text-transform:uppercase;">
+                      ${isAr ? taglineAr : taglineEn}
+                    </p>
+                  </td>
+                </tr>
 
-                    <!-- Body Content -->
-                    <tr>
-                        <td class="mobile-padding" style="padding:20px 48px 36px 48px;">
+                <tr>
+                  <td style="font-size:0; line-height:0;">
+                    <svg viewBox="0 0 600 40" style="display:block; width:100%;">
+                      <path d="M0,40 L0,20 Q150,0 300,20 T600,20 L600,40 Z" fill="#FFFFFF" />
+                    </svg>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
 
-                            <!-- Icon Badge -->
-                            <table role="presentation" cellpadding="0" cellspacing="0" border="0"
-                                style="margin:0 auto 24px auto;">
-                                <tr>
-                                    <td align="center">
-                                        <div style="
-                      width:90px; 
-                      height:90px; 
-                      background: linear-gradient(145deg, #EEF2FF, #E0E7FF);
-                      border-radius:22px; 
-                      box-shadow: 0 10px 25px -5px rgba(99, 102, 241, 0.3), inset 0 1px 0 rgba(255,255,255,0.8);
+          <tr>
+            <td class="mobile-padding" style="padding:20px 48px 36px 48px;">
+
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" dir="${isAr ? "rtl" : "ltr"}" style="margin:0 auto 24px auto;">
+                <tr>
+                  <td align="center">
+                    <div style="
+                      width:90px;
+                      height:90px;
+                      background:linear-gradient(145deg, ${colors.soft}, ${colors.light});
+                      border-radius:22px;
+                      box-shadow:0 10px 25px -5px ${colors.shadow};
                       text-align:center;
                       line-height:90px;
+                      overflow:hidden;
                     ">
-                                            <span style="font-size:42px;">🔐</span>
-                                        </div>
-                                    </td>
-                                </tr>
-                            </table>
+                      ${
+                        logoUrl
+                          ? `<img src="${logoUrl}" alt="${academyDisplayName}" width="80" height="80" style="vertical-align:middle; width:80px; height:80px; display:inline-block; border-radius:18px;" />`
+                          : `<span style="font-size:42px;">WA</span>`
+                      }
+                    </div>
+                  </td>
+                </tr>
+              </table>
 
-                            <!-- Greeting -->
-                            <p
-                                style="margin:0 0 8px 0; font-size:15px; color:#6366F1; font-weight:600; text-transform:uppercase; letter-spacing:1.5px; text-align:center;">
-                                ${otp ? (isAr ? "مطلوب التحقق" : "Verification Required") : (isAr ? "مرحباً!" : "Hello!")}
-                            </p>
+              <p style="margin:0 0 8px 0; font-size:15px; color:${colors.primary}; font-weight:700; text-transform:uppercase; letter-spacing:1.5px; text-align:center;">
+                ${
+                  otp
+                    ? isAr
+                      ? "مطلوب التحقق"
+                      : "Verification Required"
+                    : isAr
+                      ? "مرحباً!"
+                      : "Hello!"
+                }
+              </p>
 
-                            <!-- Title -->
-                            <h1
-                                style="margin:0 0 16px 0; font-size:30px; line-height:1.3; color:#0F172A; font-weight:800; text-align:center; letter-spacing:-0.5px;">
-                                ${title}
-                            </h1>
+              <h1 style="margin:0 0 16px 0; font-size:30px; line-height:1.3; color:${colors.dark}; font-weight:800; text-align:center; letter-spacing:-0.5px;">
+                ${displayTitle}
+              </h1>
 
-                            <!-- Subtitle -->
-                            <p
-                                style="margin:0 0 28px 0; font-size:16px; line-height:1.7; color:#64748B; text-align:center;">
-                                ${isAr ? "مرحباً" : "Hi"} <strong style="color:#0F172A;">${username}</strong>,
-                                ${otp ? (isAr ? "لقد تلقينا طلباً للتحقق من حسابك. استخدم الرمز أدناه للمتابعة:" : "we received a request to verify your account. Use the code below to continue:") : (isAr ? "شكراً لوجودك معنا." : "thank you for being with us.")}
-                            </p>
+              <p style="margin:0 0 28px 0; font-size:16px; line-height:1.7; color:${colors.muted}; text-align:center;">
+                ${isAr ? "مرحباً" : "Hi"} <strong style="color:${colors.dark};">${escapeHtml(username)}</strong>,
+                ${
+                  otp
+                    ? isAr
+                      ? `لقد تلقينا طلباً للتحقق من حسابك في ${academyDisplayName}. استخدم الرمز أدناه للمتابعة:`
+                      : `we received a request to verify your ${academyDisplayName} account. Use the code below to continue:`
+                    : isSessionReminder
+                      ? isAr
+                        ? "هذه رسالة تذكير بموعد جلستك القادمة. راجع التفاصيل بالأسفل واستخدم زر الانضمام عند وقت الجلسة."
+                        : "this is a reminder for your upcoming session. Review the details below and use the join button when it is time."
+                      : isAr
+                        ? `شكراً لوجودك معنا في ${academyDisplayName}.`
+                        : `thank you for being with ${academyDisplayName}.`
+                }
+              </p>
 
-                            ${otp ? `
-                            <!-- OTP Section -->
-                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
-                                style="margin:0 auto 24px auto;">
-                                <tr>
-                                    <td align="center">
-                                        <div
-                                            style="background: linear-gradient(145deg, #FAFBFF, #F0F4FF); border-radius:20px; padding:28px 20px; border: 1px solid #E0E7FF;">
+              ${
+                otp
+                  ? `
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" dir="${isAr ? "rtl" : "ltr"}" style="margin:0 auto 24px auto;">
+                <tr>
+                  <td align="center">
+                    <div style="background:linear-gradient(145deg, #ffffff, ${colors.soft}); border-radius:20px; padding:28px 20px; border:1px solid ${colors.light};">
+                      <table role="presentation" cellpadding="0" cellspacing="0" border="0" dir="${isAr ? "rtl" : "ltr"}" style="margin:0 auto;">
+                        <tr>
+                          ${otpBoxesHtml}
+                        </tr>
+                      </table>
 
-                                            <!-- OTP Digits -->
-                                            <table role="presentation" cellpadding="0" cellspacing="0" border="0"
-                                                style="margin:0 auto;">
-                                                <tr>
-                                                    ${otpBoxesHtml}
-                                                </tr>
-                                            </table>
+                      <table role="presentation" cellpadding="0" cellspacing="0" border="0" dir="${isAr ? "rtl" : "ltr"}" style="margin:18px auto 0 auto;">
+                        <tr>
+                          <td style="background:linear-gradient(135deg, ${colors.light}, ${colors.accent}); padding:8px 16px; border-radius:50px;">
+                            <span style="font-size:13px; color:${colors.primaryDark}; font-weight:700;">
+                              ${isAr ? "⏱️ تنتهي الصلاحية خلال 10 دقائق" : "⏱️ Expires in 10 minutes"}
+                            </span>
+                          </td>
+                        </tr>
+                      </table>
+                    </div>
+                  </td>
+                </tr>
+              </table>
 
-                                            <!-- Timer Badge -->
-                                            <table role="presentation" cellpadding="0" cellspacing="0" border="0"
-                                                style="margin:18px auto 0 auto;">
-                                                <tr>
-                                                    <td
-                                                        style="background: linear-gradient(135deg, #FEF3C7, #FDE68A); padding:8px 16px; border-radius:50px;">
-                                                        <span style="font-size:13px; color:#92400E; font-weight:600;">
-                                                            ${isAr ? "⏱️ تنتهي الصلاحية خلال 10 دقائق" : "⏱️ Expires in 10 minutes"}
-                                                        </span>
-                                                    </td>
-                                                </tr>
-                                            </table>
-
-                                        </div>
-                                    </td>
-                                </tr>
-                            </table>
-
-                            <!-- Security Notice -->
-                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
-                                style="margin:0 auto 20px auto;">
-                                <tr>
-                                    <td
-                                        style="background: #FEF2F2; border-radius:12px; padding:16px 20px; border-left:4px solid #EF4444;">
-                                        <table cellpadding="0" cellspacing="0" border="0">
-                                            <tr>
-                                                <td style="padding-right:12px;">
-                                                    <span style="font-size:20px;">🛡️</span>
-                                                </td>
-                                                <td>
-                                                    <p
-                                                        style="margin:0; font-size:13px; color:#991B1B; line-height:1.5; font-weight:500;">
-                                                        <strong>${isAr ? "نصيحة أمان:" : "Security Tip:"}</strong> ${isAr ? "لا تشارك هذا الرمز مع أي شخص أبداً. فريقنا لن يطلب منك رمز التحقق الخاص بك." : "Never share this code with anyone. Our team will never ask for your verification code."}
-                                                    </p>
-                                                </td>
-                                            </tr>
-                                        </table>
-                                    </td>
-                                </tr>
-                            </table>
-                            ` : ""}
-
-                            ${text ? `
-                            <!-- Custom Message -->
-                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto 20px auto;">
-                              <tr>
-                                <td style="background: linear-gradient(145deg, #F0FDF4, #DCFCE7); border-radius:16px; padding:24px; border:1px solid #BBF7D0;">
-                                  <p style="margin:0; font-size:15px; color:#166534; line-height:1.7; text-align:center;">
-                                    ${text}
-                                  </p>
-                                </td>
-                              </tr>
-                            </table>
-                            ` : ""}
-
-                            <!-- CTA Button -->
-                            <table role="presentation" cellpadding="0" cellspacing="0" border="0"
-                                style="margin:10px auto 0 auto;">
-                                <tr>
-                                    <td align="center">
-                                        <a href="${process.env.FRONTEND_URL || 'http://localhost:4200'}/#/" target="_blank" style="
-                        display:inline-block; 
-                        padding:16px 40px; 
-                        background: linear-gradient(135deg, #6366F1 0%, #4F46E5 50%, #4338CA 100%);
-                        border-radius:14px; 
-                        color:#FFFFFF; 
-                        text-decoration:none; 
-                        font-size:15px; 
-                        font-weight:700;
-                        box-shadow: 0 10px 25px -5px rgba(99, 102, 241, 0.5), 0 4px 6px -2px rgba(99, 102, 241, 0.3);
-                        letter-spacing:0.3px;
-                      ">
-                                            ${isAr ? "الذهاب إلى لوحة التحكم ←" : "Go to Dashboard →"}
-                                        </a>
-                                    </td>
-                                </tr>
-                            </table>
-
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" dir="${isAr ? "rtl" : "ltr"}" style="margin:0 auto 20px auto;">
+                <tr>
+                  <td style="background:${colors.warningBg}; border-radius:12px; padding:16px 20px; border-left:4px solid ${colors.secondary};">
+                    <table cellpadding="0" cellspacing="0" border="0" dir="${isAr ? "rtl" : "ltr"}">
+                      <tr>
+                        <td style="padding-right:12px;">
+                          <span style="font-size:20px;">🛡️</span>
                         </td>
-                    </tr>
-
-                    <!-- Features Section -->
-                    <tr>
-                        <td class="mobile-padding" style="padding:0 48px 36px 48px;">
-                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-                                <tr>
-                                    <!-- Feature 1 -->
-                                    <td width="33%" style="text-align:center; padding:0 8px;">
-                                        <div style="background:#F0FDF4; border-radius:14px; padding:20px 12px;">
-                                            <span style="font-size:28px;">🔒</span>
-                                            <p
-                                                style="margin:10px 0 0 0; font-size:12px; color:#166534; font-weight:600;">
-                                                ${isAr ? "آمن" : "Secure"}</p>
-                                        </div>
-                                    </td>
-                                    <!-- Feature 2 -->
-                                    <td width="33%" style="text-align:center; padding:0 8px;">
-                                        <div style="background:#EFF6FF; border-radius:14px; padding:20px 12px;">
-                                            <span style="font-size:28px;">⚡</span>
-                                            <p
-                                                style="margin:10px 0 0 0; font-size:12px; color:#1E40AF; font-weight:600;">
-                                                ${isAr ? "سريع" : "Fast"}</p>
-                                        </div>
-                                    </td>
-                                    <!-- Feature 3 -->
-                                    <td width="33%" style="text-align:center; padding:0 8px;">
-                                        <div style="background:#FDF4FF; border-radius:14px; padding:20px 12px;">
-                                            <span style="font-size:28px;">💎</span>
-                                            <p
-                                                style="margin:10px 0 0 0; font-size:12px; color:#86198F; font-weight:600;">
-                                                ${isAr ? "مميز" : "Premium"}</p>
-                                        </div>
-                                    </td>
-                                </tr>
-                            </table>
+                        <td>
+                          <p style="margin:0; font-size:13px; color:${colors.warningText}; line-height:1.5; font-weight:500;">
+                            <strong>${isAr ? "نصيحة أمان:" : "Security Tip:"}</strong>
+                            ${
+                              isAr
+                                ? "لا تشارك هذا الرمز مع أي شخص أبداً. فريقنا لن يطلب منك رمز التحقق الخاص بك."
+                                : "Never share this code with anyone. Our team will never ask for your verification code."
+                            }
+                          </p>
                         </td>
-                    </tr>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+              `
+                  : ""
+              }
 
-                    <!-- Divider -->
-                    <tr>
-                        <td style="padding:0 48px;">
-                            <div
-                                style="height:1px; background: linear-gradient(90deg, transparent, #E2E8F0, transparent);">
-                            </div>
+              ${
+                isSessionReminder
+                  ? `
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" dir="${isAr ? "rtl" : "ltr"}" style="margin:0 auto 20px auto;">
+                <tr>
+                  <td style="background:linear-gradient(145deg, ${colors.soft}, #ffffff); border-radius:18px; padding:24px; border:1px solid ${colors.light};">
+                    <p style="margin:0 0 16px 0; font-size:13px; color:${colors.primary}; font-weight:800; letter-spacing:1.2px; text-transform:uppercase; text-align:center;">
+                      ${isAr ? "تفاصيل الجلسة" : "Session Details"}
+                    </p>
+
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" dir="${isAr ? "rtl" : "ltr"}">
+                      ${sessionDetails
+                        .map(
+                          (item) => `
+                      <tr>
+                        <td style="padding:10px 0; border-top:1px solid ${colors.light}; font-size:13px; color:${colors.muted}; font-weight:700; width:34%; ${isAr ? "text-align:right;" : "text-align:left;"}">
+                          ${escapeHtml(item.label)}
                         </td>
-                    </tr>
-
-
-
-                    <!-- Bottom Decorative Bar -->
-                    <tr>
-                        <td
-                            style="height:6px; background: linear-gradient(90deg, #6366F1, #8B5CF6, #EC4899, #6366F1); background-size: 300% 100%;">
+                        <td style="padding:10px 0; border-top:1px solid ${colors.light}; font-size:15px; color:${colors.dark}; font-weight:700; ${isAr ? "text-align:left;" : "text-align:right;"}">
+                          ${escapeHtml(item.value)}
                         </td>
-                    </tr>
+                      </tr>
+                    `,
+                        )
+                        .join("")}
+                    </table>
 
-                </table>
+                    ${
+                      text
+                        ? `
+                    <p style="margin:16px 0 0 0; font-size:14px; color:${colors.primaryDark}; line-height:1.7; text-align:center;">
+                      ${escapeHtml(text)}
+                    </p>
+                    `
+                        : ""
+                    }
+                  </td>
+                </tr>
+              </table>
+              `
+                  : text
+                    ? `
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" dir="${isAr ? "rtl" : "ltr"}" style="margin:0 auto 20px auto;">
+                <tr>
+                  <td style="background:linear-gradient(145deg, ${colors.soft}, #ffffff); border-radius:16px; padding:24px; border:1px solid ${colors.light};">
+                    <p style="margin:0; font-size:15px; color:${colors.primaryDark}; line-height:1.7; text-align:center;">
+                      ${text}
+                    </p>
+                  </td>
+                </tr>
+              </table>
+              `
+                    : ""
+              }
 
-                <!-- Email Client Tiny Footer -->
-                <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:24px auto 0 auto;">
-                    <tr>
-                        <td align="center">
-                            <p style="margin:0; font-size:11px; color:#94A3B8;">
-                                Powered with 💜 by <strong style="color:#6366F1;">${isAr ? "نيوفيديا للبرمجيات" : "Neovidia for Software"}</strong>
-                            </p>
-                        </td>
-                    </tr>
-                </table>
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" dir="${isAr ? "rtl" : "ltr"}" style="margin:10px auto 0 auto;">
+                <tr>
+                  <td align="center">
+                    <a href="${escapeHtml(safeActionUrl)}" target="_blank" style="
+                      display:inline-block;
+                      padding:16px 40px;
+                      background:linear-gradient(135deg, ${colors.primary} 0%, ${colors.secondary} 55%, ${colors.accent} 100%);
+                      border-radius:14px;
+                      color:#FFFFFF;
+                      text-decoration:none;
+                      font-size:15px;
+                      font-weight:700;
+                      box-shadow:0 10px 25px -5px ${colors.shadow};
+                      letter-spacing:0.3px;
+                    ">
+                      ${escapeHtml(displayActionText)}
+                    </a>
+                  </td>
+                </tr>
+              </table>
 
             </td>
-        </tr>
-    </table>
+          </tr>
+
+          <tr>
+            <td class="mobile-padding" style="padding:0 48px 36px 48px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" dir="${isAr ? "rtl" : "ltr"}">
+                <tr>
+                  <td width="33%" style="text-align:center; padding:0 8px;">
+                    <div style="background:${colors.soft}; border-radius:14px; padding:20px 12px;">
+                      <span style="font-size:28px;">🤲</span>
+                      <p style="margin:10px 0 0 0; font-size:12px; color:${colors.primaryDark}; font-weight:700;">
+                        ${isAr ? "ثقة" : "Trusted"}
+                      </p>
+                    </div>
+                  </td>
+
+                  <td width="33%" style="text-align:center; padding:0 8px;">
+                    <div style="background:${colors.warningBg}; border-radius:14px; padding:20px 12px;">
+                      <span style="font-size:28px;">🌙</span>
+                      <p style="margin:10px 0 0 0; font-size:12px; color:${colors.secondary}; font-weight:700;">
+                        ${isAr ? "تعلم مرن" : "Flexible"}
+                      </p>
+                    </div>
+                  </td>
+
+                  <td width="33%" style="text-align:center; padding:0 8px;">
+                    <div style="background:${colors.light}; border-radius:14px; padding:20px 12px;">
+                      <span style="font-size:28px;">📖</span>
+                      <p style="margin:10px 0 0 0; font-size:12px; color:${colors.primaryDark}; font-weight:700;">
+                        ${isAr ? "إتقان" : "Excellence"}
+                      </p>
+                    </div>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <tr>
+            <td style="padding:0 48px;">
+              <div style="height:1px; background:linear-gradient(90deg, transparent, ${colors.light}, transparent);"></div>
+            </td>
+          </tr>
+
+          <tr>
+            <td style="height:6px; background:linear-gradient(90deg, ${colors.primary}, ${colors.secondary}, ${colors.accent}, ${colors.primary}); background-size:300% 100%;"></td>
+          </tr>
+
+        </table>
+
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" dir="${isAr ? "rtl" : "ltr"}" style="margin:24px auto 0 auto;">
+          <tr>
+            <td align="center">
+              <p style="margin:0; font-size:11px; color:${colors.muted};">
+                ${isAr ? "مرسل من" : "Sent by"}
+                <strong style="color:${colors.primary};">${academyDisplayName}</strong>
+              </p>
+            </td>
+          </tr>
+        </table>
+
+      </td>
+    </tr>
+  </table>
 
 </body>
-
-</html>`
+</html>`;
+  };
 };
+
+const waeiMailTemp = createAcademyMailTemp({
+  academyName: "Waei Academy",
+  academyNameAr: "أكاديمية وعي",
+  taglineEn: "Learning with Awareness and Purpose",
+  taglineAr: "تعلم بوعي وهدف",
+  logoUrl: "https://dashboard.waaiacademy.com/logo.png",
+  colors: {
+    primary: "#0F766E",
+    primaryDark: "#115E59",
+    secondary: "#D97706",
+    accent: "#F59E0B",
+    dark: "#134E4A",
+    soft: "#F0FDFA",
+    light: "#CCFBF1",
+    muted: "#64748B",
+    warningBg: "#FFFBEB",
+    warningText: "#92400E",
+    shadow: "rgba(15, 118, 110, 0.35)",
+  },
+});
+
+export const mailTemp = waeiMailTemp;

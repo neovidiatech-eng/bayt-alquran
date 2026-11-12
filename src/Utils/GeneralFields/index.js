@@ -1,23 +1,23 @@
 import Joi from "joi";
 
-export const validateE164PhoneLength = (schema, codeField = "codeCountry") =>
-  schema
-    .custom((value, helpers) => {
-      const codeCountry = value?.[codeField];
-      const phone = value?.phone;
+export const validateInternationalPhoneLength = ({
+  phoneKey = "phone",
+  codeCountryKey = "codeCountry",
+} = {}) => {
+  return (value, helpers) => {
+    const phone = value?.[phoneKey];
+    const codeCountry = value?.[codeCountryKey];
 
-      if (!codeCountry || !phone) return value;
+    if (!phone || !codeCountry) return value;
 
-      const codeDigits = codeCountry.replace("+", "");
-      if (codeDigits.length + phone.length > 15) {
-        return helpers.error("phone.e164Length");
-      }
+    const codeDigits = codeCountry.replace("+", "");
+    if (codeDigits.length + phone.length > 15) {
+      return helpers.error("phone.e164Length");
+    }
 
-      return value;
-    })
-    .messages({
-      "phone.e164Length": "PHONE_E164_TOO_LONG",
-    });
+    return value;
+  };
+};
 
 export const generalFeilds = {
   role_name: Joi.string().min(3).max(15).messages({
@@ -28,6 +28,7 @@ export const generalFeilds = {
     "any.required": "Role name is required",
   }),
   url: Joi.string().uri(),
+  fcmToken: Joi.string().min(50).max(500),
 
   permission_name: Joi.string().min(3).max(32).messages({
     "string.base": "Permission name must be a string",
@@ -64,6 +65,11 @@ export const generalFeilds = {
     "string.email": "Please enter a valid email address",
     "any.required": "Email is required",
   }),
+  hourPrice: Joi.number().min(0).messages({
+    "number.base": "HOUR_PRICE_MUST_BE_NUMBER",
+    "number.min": "HOUR_PRICE_MUST_BE_POSITIVE",
+    "any.required": "HOUR_PRICE_REQUIRED",
+  }),
   password: Joi.string()
     .pattern(
       new RegExp(
@@ -99,12 +105,27 @@ export const generalFeilds = {
     "string.empty": "Country cannot be empty",
     "any.required": "Country is required",
   }),
+  nationality: Joi.string().messages({
+    "string.base": "Nationality must be a string",
+    "string.empty": "Nationality cannot be empty",
+    "any.required": "Nationality is required",
+  }),
+  age: Joi.number().required().messages({
+    "number.base": "Age must be a number",
+    "number.empty": "Age cannot be empty",
+    "any.required": "Age is required",
+  }),
+  city: Joi.string().optional().messages({
+    "string.base": "City must be a string",
+    "string.empty": "City cannot be empty",
+  }),
   phone: Joi.string()
     .pattern(/^[0-9]{4,14}$/)
     .messages({
       "string.base": "Phone number must be a string",
       "string.empty": "Phone number cannot be empty",
-      "string.pattern.base": "Phone number must contain 4 to 14 digits only",
+      "string.pattern.base":
+        "Phone must contain national digits only, without country code, spaces, or symbols",
       "any.required": "Phone number is required",
     }),
   idToken: Joi.string().messages({
@@ -137,7 +158,7 @@ export const generalFeilds = {
   //   "string.max": "Bio must be at most {#limit} characters",
   //   "any.required": "Bio is required",
   // }),
-  search: Joi.string().max(32).messages({
+  search: Joi.string().max(32).allow("", null).messages({
     "string.base": "Search query must be a string",
     "string.empty": "Search query cannot be empty",
     "string.max": "Search query must be at most {#limit} characters",
@@ -148,6 +169,17 @@ export const generalFeilds = {
     "string.empty": "Search query cannot be empty",
     "string.max": "Search query must be at most {#limit} characters",
     "any.required": "Search query is required",
+  }),
+  orderBy:Joi.string().optional().messages({
+    "string.base": "Order by must be a string",
+    "string.empty": "Order by cannot be empty",
+    "any.required": "Order by is required",
+  }),
+  order: Joi.string().valid("asc", "desc").optional().messages({
+    "string.base": "Order must be a string",
+    "string.empty": "Order cannot be empty",
+    "any.only": "Order must be either 'asc' or 'desc'",
+    "any.required": "Order is required",
   }),
   file: {
     fieldname: Joi.string().required().messages({
@@ -196,13 +228,15 @@ export const generalFeilds = {
       "any.required": "File size is required",
     }),
   },
-  codeCountry: Joi.string().pattern(/^\+[1-9]\d{0,2}$/).messages({
-    "string.base": "Code country must be a string",
-    "string.empty": "Code country cannot be empty",
-    "string.pattern.base":
-      "Code country must start with + followed by 1 to 3 digits",
-    "any.required": "Code country is required",
-  }),
+  codeCountry: Joi.string()
+    .pattern(/^\+[1-9]\d{0,2}$/)
+    .messages({
+      "string.base": "Code country must be a string",
+      "string.empty": "Code country cannot be empty",
+      "string.pattern.base":
+        "Code country must be an international prefix like +1, +20, +44, or +966",
+      "any.required": "Code country is required",
+    }),
   name_en: Joi.string().messages({
     "string.base": "Name must be a string",
     "string.empty": "Name cannot be empty",
@@ -234,7 +268,7 @@ export const generalFeilds = {
     "any.required": "Default is required",
   }),
 
-  description: Joi.string().min(10).max(1000).messages({
+  description: Joi.string().messages({
     "string.base": "Description must be a string",
     "string.empty": "Description cannot be empty",
     "any.required": "Description is required",
@@ -303,11 +337,10 @@ export const generalFeilds = {
     "number.min": "Page must be at least 1",
     "any.required": "Page is required",
   }),
-  limit: Joi.number().integer().min(1).max(100).messages({
+  limit: Joi.number().integer().min(1).messages({
     "number.base": "Limit must be a number",
     "number.integer": "Limit must be an integer",
     "number.min": "Limit must be at least 1",
-    "number.max": "Limit must be at most 100",
     "any.required": "Limit is required",
   }),
 };

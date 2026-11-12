@@ -1,4 +1,4 @@
-import { redis } from "../Radis/Connection.js";
+import { redis } from "./Connection.js";
 
 /**
  * Redis Service for Chat System

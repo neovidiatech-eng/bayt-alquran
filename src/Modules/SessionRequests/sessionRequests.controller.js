@@ -4,7 +4,51 @@ import {
   errorResponse,
 } from "../../Utils/Response.js";
 import * as db from "../../database/dbService.js";
-import { normalizeDate } from "../../Utils/Helpers.js";
+import { normalizeDate, formatSchedules } from "../../Utils/Helpers.js";
+import {
+  addNotificationJob,
+  removeNotificationJob,
+} from "../../Utils/Workers/notifications.js";
+import { notificationType } from "../../Utils/Enums/sessions.js";
+import { createAdminNotification, createTeacherAndStudentNotification } from "../Notifications/notifications.controller.js";
+import { getModeratorStudentIds } from "../../Utils/Permissions/permissions.js";
+
+async function resolveRequestUsers(request) {
+  let teacherUserId = null;
+  let studentUserId = null;
+
+  if (request.schedule) {
+    teacherUserId = request.schedule.teacher?.user?.id;
+    studentUserId = request.schedule.student?.user?.id;
+  } else {
+    const requestedData = request.requestedData || {};
+    if (request.requesterRole === "teacher") {
+      teacherUserId = request.requesterId;
+    } else if (requestedData.teacherId) {
+      const teacher = await db.findOne({
+        model: "teacher",
+        where: { id: requestedData.teacherId },
+        include: { user: true },
+      });
+      teacherUserId = teacher?.user?.id;
+    }
+
+    if (request.requesterRole === "student") {
+      studentUserId = request.requesterId;
+    } else if (requestedData.studentId) {
+      const student = await db.findOne({
+        model: "student",
+        where: { id: requestedData.studentId },
+        include: { user: true },
+      });
+      studentUserId = student?.user?.id;
+    }
+  }
+
+  return { teacherUserId, studentUserId };
+}
+
+
 
 // 1. Create Request (Teacher/Student)
 export const createRequest = asyncHandler(async (req, res, next) => {
@@ -52,6 +96,17 @@ export const createRequest = asyncHandler(async (req, res, next) => {
     },
   });
 
+  const requester = await db.findOne({
+    model: "user",
+    where: { id: requesterId }
+  });
+
+  await createAdminNotification({
+    title: "تم تقديم طلب جلسة جديد",
+    message: `تم تقديم طلب جلسة (${type}) من ${requester?.name || "User"} (${requesterRole}).`,
+    type: "session_request_created",
+  });
+
   return successResponse({
     res,
     req,
@@ -68,6 +123,30 @@ export const getAllRequests = asyncHandler(async (req, res, next) => {
   if (status) where.status = status;
   if (type) where.type = type;
 
+  const assignedStudentIds = await getModeratorStudentIds(req.user);
+  if (assignedStudentIds !== null) {
+    where.AND = where.AND || [];
+    where.AND.push({
+      OR: [
+        {
+          schedule: {
+            OR: [
+              { studentId: { in: assignedStudentIds } },
+              { groupStudents: { some: { studentId: { in: assignedStudentIds } } } },
+            ],
+          },
+        },
+        {
+          requester: {
+            student: {
+              id: { in: assignedStudentIds },
+            },
+          },
+        },
+      ],
+    });
+  }
+
   const requests = await db.findMany({
     model: "session_request",
     where,
@@ -78,7 +157,14 @@ export const getAllRequests = asyncHandler(async (req, res, next) => {
     orderBy: { createdAt: "desc" },
   });
 
-  return successResponse({ res, data: requests });
+  const formattedRequests = requests.map((request) => ({
+    ...request,
+    schedule: request.schedule
+      ? formatSchedules(request.schedule, req.timezone)
+      : request.schedule,
+  }));
+
+  return successResponse({ res, data: formattedRequests });
 });
 
 // 3. Approve Request (Admin)
@@ -87,10 +173,20 @@ export const approveRequest = asyncHandler(async (req, res, next) => {
   const { adminNotes } = req.body;
   const adminId = req.user.id;
 
+  let oldSessionIdToRemove = null;
+  let newSessionToAdd = null;
+
   const request = await db.findOne({
     model: "session_request",
     where: { id },
-    include: { schedule: true },
+    include: {
+      schedule: {
+        include: {
+          teacher: { include: { user: true } },
+          student: { include: { user: true } },
+        },
+      },
+    },
   });
 
   if (!request) {
@@ -100,6 +196,20 @@ export const approveRequest = asyncHandler(async (req, res, next) => {
       status: 404,
       message: "REQUEST_NOT_FOUND",
     });
+  }
+
+  const assignedStudentIds = await getModeratorStudentIds(req.user);
+  if (assignedStudentIds !== null) {
+    const studentId =
+      request.schedule?.studentId || request.requestedData?.studentId;
+    if (!studentId || !assignedStudentIds.includes(studentId)) {
+      return errorResponse({
+        req,
+        next,
+        status: 403,
+        message: "FORBIDDEN",
+      });
+    }
   }
 
   if (request.status !== "pending") {
@@ -129,8 +239,8 @@ export const approveRequest = asyncHandler(async (req, res, next) => {
         throw new Error("RELATED_SESSION_NOT_FOUND");
       }
 
-      const startTime = normalizeDate(requestedData.new_start_time);
-      const endTime = normalizeDate(requestedData.new_end_time);
+      const startTime = normalizeDate(requestedData.new_start_time, req.timezone);
+      const endTime = normalizeDate(requestedData.new_end_time, req.timezone);
 
       // Conflict check
       const teacher_conflict = await tx.findFirst({
@@ -142,15 +252,20 @@ export const approveRequest = asyncHandler(async (req, res, next) => {
           end_time: { gt: startTime },
         },
       });
-      const student_conflict = await tx.findFirst({
-        model: "schedule",
-        where: {
-          studentId: oldSession.studentId,
-          status: { not: "cancelled" },
-          start_time: { lt: endTime },
-          end_time: { gt: startTime },
-        },
-      });
+      const student_conflict = oldSession.studentId
+        ? await tx.findFirst({
+            model: "schedule",
+            where: {
+              status: { not: "cancelled" },
+              start_time: { lt: endTime },
+              end_time: { gt: startTime },
+              OR: [
+                { studentId: oldSession.studentId },
+                { groupStudents: { some: { studentId: oldSession.studentId } } },
+              ],
+            },
+          })
+        : null;
 
       if (teacher_conflict || student_conflict) {
         throw new Error("SESSION_CONFLICT");
@@ -170,7 +285,7 @@ export const approveRequest = asyncHandler(async (req, res, next) => {
           end_time: endTime,
           notes: requestedData.suggested_notes || oldSession.notes,
           rescheduledFromId: oldSession.id,
-          status: "rescheduled",
+          status: "scheduled",
         },
       });
 
@@ -179,6 +294,14 @@ export const approveRequest = asyncHandler(async (req, res, next) => {
         model: "schedule",
         where: { id: oldSession.id },
       });
+
+      oldSessionIdToRemove = oldSession.id;
+      newSessionToAdd = {
+        id: newSession.id,
+        studentId: oldSession.studentId,
+        startTime,
+        notification_Time: requestedData.notification_Time,
+      };
     } else if (type === "cancel" && sessionId) {
       await tx.updateOne({
         model: "schedule",
@@ -190,17 +313,50 @@ export const approveRequest = asyncHandler(async (req, res, next) => {
       const session = await tx.findOne({
         model: "schedule",
         where: { id: sessionId },
+        include: { groupStudents: true },
       });
-      await tx.updateOne({
-        model: "student",
-        where: { id: session.studentId },
-        data: { sessions_remaining: { increment: 1 } },
-      });
+      if (session) {
+        const studentIds = session.isGroup
+          ? session.groupStudents.map((gs) => gs.studentId)
+          : session.studentId
+          ? [session.studentId]
+          : [];
+
+        for (const sId of studentIds) {
+          await tx.updateOne({
+            model: "student",
+            where: { id: sId },
+            data: { sessions_remaining: { increment: 1 } },
+          });
+        }
+      }
+
+      oldSessionIdToRemove = sessionId;
     } else if (type === "new_session") {
-      const startTime = normalizeDate(requestedData.new_start_time);
-      const endTime = normalizeDate(requestedData.new_end_time);
-      const teacherId = requestedData.teacherId || request.requesterId;
-      const studentId = requestedData.studentId;
+      const startTime = normalizeDate(requestedData.new_start_time, req.timezone);
+      const endTime = normalizeDate(requestedData.new_end_time, req.timezone);
+      let teacherId = requestedData.teacherId;
+      let studentId = requestedData.studentId;
+
+      if (!teacherId && request.requesterRole === "teacher") {
+        const teacher = await tx.findOne({
+          model: "teacher",
+          where: { user_id: request.requesterId },
+        });
+        if (teacher) {
+          teacherId = teacher.id;
+        }
+      }
+
+      if (!studentId && request.requesterRole === "student") {
+        const student = await tx.findOne({
+          model: "student",
+          where: { user_id: request.requesterId },
+        });
+        if (student) {
+          studentId = student.id;
+        }
+      }
 
       // Conflict check
       const teacher_conflict = await tx.findFirst({
@@ -212,21 +368,26 @@ export const approveRequest = asyncHandler(async (req, res, next) => {
           end_time: { gt: startTime },
         },
       });
-      const student_conflict = await tx.findFirst({
-        model: "schedule",
-        where: {
-          studentId,
-          status: { not: "cancelled" },
-          start_time: { lt: endTime },
-          end_time: { gt: startTime },
-        },
-      });
+      const student_conflict = studentId
+        ? await tx.findFirst({
+            model: "schedule",
+            where: {
+              status: { not: "cancelled" },
+              start_time: { lt: endTime },
+              end_time: { gt: startTime },
+              OR: [
+                { studentId },
+                { groupStudents: { some: { studentId } } },
+              ],
+            },
+          })
+        : null;
 
       if (teacher_conflict || student_conflict) {
         throw new Error("SESSION_CONFLICT");
       }
 
-      await tx.create({
+      const newSession = await tx.create({
         model: "schedule",
         data: {
           teacherId,
@@ -241,6 +402,13 @@ export const approveRequest = asyncHandler(async (req, res, next) => {
           status: "scheduled",
         },
       });
+
+      newSessionToAdd = {
+        id: newSession.id,
+        studentId,
+        startTime,
+        notification_Time: requestedData.notification_Time,
+      };
     } else if (type === "absence_correction" && sessionId) {
       await tx.updateOne({
         model: "schedule",
@@ -262,6 +430,69 @@ export const approveRequest = asyncHandler(async (req, res, next) => {
     });
   });
 
+  // Post-transaction Redis operations for notification jobs
+  if (oldSessionIdToRemove) {
+    try {
+      await removeNotificationJob(oldSessionIdToRemove);
+    } catch (err) {
+      console.error(`Failed to remove notification job for session ${oldSessionIdToRemove}:`, err);
+    }
+  }
+
+  if (newSessionToAdd) {
+    try {
+      const { id: newSessionId, studentId, startTime, notification_Time } = newSessionToAdd;
+      const effectiveNotificationTime = notification_Time || "60";
+
+      let reminderTime;
+      let notificationJobType;
+      if (effectiveNotificationTime === notificationType[1]) {
+        reminderTime = new Date(startTime.getTime() - 10 * 60 * 1000);
+        notificationJobType = "before 10 minutes";
+      } else if (effectiveNotificationTime === notificationType[2]) {
+        reminderTime = new Date(startTime.getTime() - 30 * 60 * 1000);
+        notificationJobType = "before 30 minutes";
+      } else {
+        reminderTime = new Date(startTime.getTime() - 60 * 60 * 1000);
+        notificationJobType = "before 60 minutes";
+      }
+
+      const now = new Date();
+      if (reminderTime > now) {
+        await addNotificationJob({
+          scheduleId: newSessionId,
+          studentId,
+          type: notificationJobType,
+          sendAt: reminderTime,
+        });
+      }
+    } catch (err) {
+      console.error("Failed to add notification job for new session:", err);
+    }
+  }
+
+  const requester = await db.findOne({
+    model: "user",
+    where: { id: request.requesterId }
+  });
+
+  const { teacherUserId, studentUserId } = await resolveRequestUsers(request);
+
+  await Promise.all([
+    createTeacherAndStudentNotification({
+      title: "تم قبول طلب جلسة",
+      message: `تم قبول طلب جلسة (${request.type}) من ${requester?.name || "User"}.`,
+      type: "session_request_approved",
+      teacherId: teacherUserId,
+      studentId: studentUserId,
+    }),
+    createAdminNotification({
+      title: "تم قبول طلب جلسة",
+      message: `تم قبول طلب جلسة (${request.type}) من ${requester?.name || "User"}.`,
+      type: "session_request_approved",
+    }),
+  ]);
+
   return successResponse({
     res,
     req,
@@ -275,7 +506,18 @@ export const rejectRequest = asyncHandler(async (req, res, next) => {
   const { adminNotes } = req.body;
   const adminId = req.user.id;
 
-  const request = await db.findOne({ model: "session_request", where: { id } });
+  const request = await db.findOne({
+    model: "session_request",
+    where: { id },
+    include: {
+      schedule: {
+        include: {
+          teacher: { include: { user: true } },
+          student: { include: { user: true } },
+        },
+      },
+    },
+  });
   if (!request) {
     return errorResponse({
       req,
@@ -283,6 +525,20 @@ export const rejectRequest = asyncHandler(async (req, res, next) => {
       status: 404,
       message: "REQUEST_NOT_FOUND",
     });
+  }
+
+  const assignedStudentIds = await getModeratorStudentIds(req.user);
+  if (assignedStudentIds !== null) {
+    const studentId =
+      request.schedule?.studentId || request.requestedData?.studentId;
+    if (!studentId || !assignedStudentIds.includes(studentId)) {
+      return errorResponse({
+        req,
+        next,
+        status: 403,
+        message: "FORBIDDEN",
+      });
+    }
   }
 
   if (request.status !== "pending") {
@@ -299,6 +555,28 @@ export const rejectRequest = asyncHandler(async (req, res, next) => {
     where: { id },
     data: { status: "rejected", adminId, adminNotes },
   });
+
+  const requester = await db.findOne({
+    model: "user",
+    where: { id: request.requesterId }
+  });
+
+  const { teacherUserId, studentUserId } = await resolveRequestUsers(request);
+
+  await Promise.all([
+    createTeacherAndStudentNotification({
+      title: "تم رفض طلب جلسة",
+      message: `تم رفض طلب جلسة (${request.type}) من ${requester?.name || "User"}.`,
+      type: "session_request_rejected",
+      teacherId: teacherUserId,
+      studentId: studentUserId,
+    }),
+    createAdminNotification({
+      title: "تم رفض طلب جلسة",
+      message: `تم رفض طلب جلسة (${request.type}) من ${requester?.name || "User"}.`,
+      type: "session_request_rejected",
+    }),
+  ]);
 
   return successResponse({
     res,
@@ -326,5 +604,12 @@ export const getMyRequests = asyncHandler(async (req, res, next) => {
     },
   });
 
-  return successResponse({ res, data: requests });
+  const formattedRequests = requests.map((request) => ({
+    ...request,
+    schedule: request.schedule
+      ? formatSchedules(request.schedule, req.timezone)
+      : request.schedule,
+  }));
+
+  return successResponse({ res, data: formattedRequests });
 });

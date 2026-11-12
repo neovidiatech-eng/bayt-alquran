@@ -21,6 +21,7 @@ export const getMessage = (key, lang = "en", params = {}) => {
   if (params && typeof params === "object") {
     Object.keys(params).forEach((param) => {
       message = message.replace(new RegExp(`{{${param}}}`, "g"), params[param]);
+      message = message.replace(new RegExp(`{#${param}}`, "g"), params[param]);
     });
   }
 

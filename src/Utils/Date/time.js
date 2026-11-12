@@ -1,11 +1,15 @@
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc.js";
 import timezone from "dayjs/plugin/timezone.js";
+import {
+  DEFAULT_TIMEZONE,
+  formatDateTimeForTimezone,
+  formatSessionsForTimezone,
+  normalizeDateTimeForTimezone,
+} from "../Timezone/timezone.js";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
-
-export const DEFAULT_TIMEZONE = "Africa/Cairo";
 
 /**
  * Get the current time in UTC
@@ -22,23 +26,9 @@ export const getNowUTC = () => dayjs.utc();
  */
 export const toUTC = (date, tz = DEFAULT_TIMEZONE) => {
   if (!date) return null;
-  
-  let result;
-  // If it's already a dayjs object
-  if (dayjs.isDayjs(date)) {
-    result = date.utc();
-  }
-  // If it's a string and doesn't have a timezone offset or 'Z'
-  else if (typeof date === "string" && !date.includes("Z") && !date.match(/[\+\-]\d{2}:?\d{2}$/)) {
-    result = dayjs.tz(date, tz).utc();
-    console.log(`[TIME_PARSE] Local string detected: "${date}" | Interpreted as ${tz} | Result (UTC): ${result.toISOString()}`);
-  }
-  else {
-    result = dayjs.utc(date);
-    console.log(`[TIME_PARSE] UTC/ISO string detected: "${date}" | Result (UTC): ${result.toISOString()}`);
-  }
 
-  return result.isValid() ? result : null;
+  const result = normalizeDateTimeForTimezone(date, tz);
+  return result ? dayjs.utc(result) : null;
 };
 
 /**
@@ -79,10 +69,6 @@ export const isBeforeAllowedJoinTime = (startTime, windowMinutes = 5) => {
 
   const tooEarly = now.isBefore(threshold);
 
-  console.log(`[TIME_CHECK] Now (UTC): ${now.toISOString()} | Now (Cairo): ${toLocal(now)}`);
-  console.log(`[TIME_CHECK] Session Start (UTC): ${start.toISOString()} | Allowed From (UTC): ${threshold.toISOString()}`);
-  console.log(`[TIME_CHECK] Is Too Early: ${tooEarly}`);
-
   return tooEarly;
 };
 
@@ -111,16 +97,7 @@ export const isInsideJoinWindow = (startTime, endTime, windowMinutes = 5) => {
  * @param {string} tz - Target timezone
  */
 export const formatSchedules = (schedules, tz) => {
-  const formatSingle = (s) => ({
-    ...s,
-    start_time: toLocal(s.start_time, tz),
-    end_time: toLocal(s.end_time, tz),
-  });
-
-  if (Array.isArray(schedules)) {
-    return schedules.map(formatSingle);
-  }
-  return formatSingle(schedules);
+  return formatSessionsForTimezone(schedules, tz);
 };
 
 /**

@@ -19,7 +19,13 @@
     "seed:subscription-requests": "node prisma/seeders/subscriptionRequests.seeder.js",
     "seed:expenses": "node prisma/seeders/expenses.seeder.js",
     "seed:system-wallet": "node prisma/seeders/systemWallet.seeder.js",
-    "seed:reviews": "node prisma/seeders/reviews.seeder.js",
+    "seed:notifications": "node prisma/seeders/notifications.seeder.js",
+    "seed:violations": "node prisma/seeders/violations.seeder.js",
+    "seed:ranks": "node prisma/seeders/ranks.seeder.js",
+    "seed:moderator": "node prisma/seeders/moderator.seeder.js",
+    "seed:session-requests": "node prisma/seeders/sessionRequests.seeder.js",
+    "seed:withdrawal-requests": "node prisma/seeders/withdrawalRequests.seeder.js",
+    "seed:transactions": "node prisma/seeders/transactions.seeder.js",
     "seed:all": "npx prisma db seed"
   },
   "keywords": [],
@@ -39,7 +45,7 @@
     "express": "^5.2.1",
     "express-list-endpoints": "^7.1.1",
     "express-rate-limit": "^8.3.2",
-    "geoip-lite": "^2.0.2",
+    "geoip-lite": "^1.4.10",
     "google-auth-library": "^10.6.2",
     "groq-sdk": "^0.37.0",
     "ioredis": "^5.10.1",
@@ -57,7 +63,10 @@
     "rate-limit-redis": "^5.0.0",
     "redis": "^5.10.0",
     "socket.io": "^4.8.3",
-    "swagger-ui-express": "^5.0.1"
+    "swagger-ui-express": "^5.0.1",
+    "@getbrevo/brevo": "^6.0.3",
+    "firebase-admin": "^14.0.0",
+    "imapflow": "^1.4.2"
   },
   "prisma": {
     "seed": "node prisma/seed.js"

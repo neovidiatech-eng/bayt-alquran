@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "moderator" ADD COLUMN     "salary" DOUBLE PRECISION NOT NULL DEFAULT 0;

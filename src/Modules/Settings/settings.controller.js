@@ -3,54 +3,52 @@ import * as db from "../../database/dbService.js";
 
 /**
  * Reads settings from database
- * @returns {Promise<{lateDiscountRules: Array<{lateMinutes: number, discountPercentage: number}>}>}
  */
 export const getSettingsData = async () => {
   try {
     const setting = await db.findFirst({ model: "Setting" });
-    if (setting && setting.discounts) {
-      const data = typeof setting.discounts === "string"
-        ? JSON.parse(setting.discounts)
-        : setting.discounts;
-      return data;
+    if (setting) {
+      return {
+        ...setting,
+        paidSessionCount: setting.paidSessionCount ?? 3,
+        studentCanJoin: setting.studentCanJoin ?? false,
+      };
     }
     return {
-      lateDiscountRules: [
-        { lateMinutes: 10, discountPercentage: 5 },
-      ],
+      paidSessionCount: 3,
+      studentCanJoin: false,
     };
   } catch (error) {
     console.error("Error reading settings from DB:", error);
     return {
-      lateDiscountRules: [
-        { lateMinutes: 10, discountPercentage: 5 },
-      ],
+      paidSessionCount: 3,
+      studentCanJoin: false,
     };
   }
 };
 
 /**
  * Writes settings to database
- * @param {Record<string, any>} discounts
+ * @param {Record<string, any>} data
  * @returns {Promise<void>}
  */
-export const saveSettingsData = async (discounts) => {
+export const saveSettingsData = async (data) => {  
   const existing = await db.findFirst({ model: "Setting" });
   if (existing) {
-    await db.updateOne({
+    return await db.updateOne({
       model: "Setting",
       where: { id: existing.id },
-      data: { discounts },
+      data: { ...data },
     });
   } else {
-    await db.create({
+    return await db.create({
       model: "Setting",
-      data: { discounts },
+      data: { ...data },
     });
   }
 };
 
-export const getLateDiscount = asyncHandler(async (req, res, next) => {
+export const getSettings = asyncHandler(async (req, res, next) => {
   const settings = await getSettingsData();
   return successResponse({
     res,
@@ -61,40 +59,14 @@ export const getLateDiscount = asyncHandler(async (req, res, next) => {
   });
 });
 
+export const updateSettings = asyncHandler(async (req, res, next) => {
+  const { paidSessionCount, studentCanJoin } = req.body;
 
-export const updateLateDiscount = asyncHandler(async (req, res, next) => {
-  const { lateMinutes, discountPercentage } = req.body;
+  const updatePayload = {};
+  if (paidSessionCount !== undefined) updatePayload.paidSessionCount = parseInt(paidSessionCount);
+  if (studentCanJoin !== undefined) updatePayload.studentCanJoin = studentCanJoin;
 
-  if (
-    lateMinutes === undefined ||
-    discountPercentage === undefined
-  ) {
-    return next(new Error("lateMinutes and discountPercentage are required"));
-  }
-
-  const settings = await getSettingsData();
-
-  const currentRules = settings.lateDiscountRules || [];
-
-  const existingRuleIndex = currentRules.findIndex(
-    (rule) => Number(rule.lateMinutes) === Number(lateMinutes)
-  );
-
-  if (existingRuleIndex !== -1) {
-    // update existing rule
-    currentRules[existingRuleIndex].discountPercentage =
-      Number(discountPercentage);
-  } else {
-    // add new rule
-    currentRules.push({
-      lateMinutes: Number(lateMinutes),
-      discountPercentage: Number(discountPercentage),
-    });
-  }
-
-  await saveSettingsData({
-    lateDiscountRules: currentRules,
-  });
+  await saveSettingsData(updatePayload);
 
   const updatedSettings = await getSettingsData();
 

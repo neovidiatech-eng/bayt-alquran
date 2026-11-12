@@ -5,15 +5,19 @@ export const createPlanSchema = {
   body: Joi.object({
     name_en: generalFeilds.name_en.required(),
     name_ar: generalFeilds.name_ar.required(),
-    description: generalFeilds.description.required(),
+    description: generalFeilds.description.optional(),
     price: generalFeilds.price.required(),
     duration: generalFeilds.duration.required(),
     sessionsCount: generalFeilds.sessionsCount.required(),
     sessionTime: generalFeilds.sessionTime.required(),
     active: generalFeilds.active.required(),
     bestSeller: generalFeilds.bestSeller.required(),
-    features: generalFeilds.features.required(),
+    features: generalFeilds.features.optional(),
     currencyId: generalFeilds.id.required(),
+    color: generalFeilds.color.optional(),
+    isGroup: Joi.boolean().optional().default(false),
+    maxStudents: Joi.alternatives().try(Joi.string(), Joi.number()).optional(),
+    planType: Joi.string().valid("individual", "group").optional().default("individual"),
   }),
 };
 
@@ -30,6 +34,10 @@ export const updatePlanSchema = {
     bestSeller: generalFeilds.bestSeller,
     features: generalFeilds.features,
     currencyId: generalFeilds.id,
+    color: generalFeilds.color.optional(),
+    isGroup: Joi.boolean().optional(),
+    maxStudents: Joi.alternatives().try(Joi.string(), Joi.number()).optional(),
+    planType: Joi.string().valid("individual", "group").optional(),
   }),
   params: Joi.object({
     id: generalFeilds.id.required(),

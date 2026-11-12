@@ -29,7 +29,7 @@ const ensurePermissions = (req) => {
 export const authorize = (permissionCode) => {
   return asyncHandler(async (req, res, next) => {
     if (!req.user) {
-      return next(new Error("Unauthorized", { cause: 401 }));
+      return next(new Error("UNAUTHORIZED", { cause: 401 }));
     }
 
     // Bypass check for admin / super_admin
@@ -40,7 +40,7 @@ export const authorize = (permissionCode) => {
     ensurePermissions(req);
 
     if (!req.permissions.has(permissionCode)) {
-      return next(new Error("Forbidden: You do not have permission to perform this action", { cause: 403 }));
+      return next(new Error("FORBIDDEN", { cause: 403 }));
     }
 
     next();
@@ -53,7 +53,7 @@ export const authorize = (permissionCode) => {
 export const authorizeResource = (resourceName) => {
   return asyncHandler(async (req, res, next) => {
     if (!req.user) {
-      return next(new Error("Unauthorized", { cause: 401 }));
+      return next(new Error("UNAUTHORIZED", { cause: 401 }));
     }
 
     // Bypass check for admin / super_admin
@@ -77,7 +77,7 @@ export const authorizeResource = (resourceName) => {
     const permissionCode = `${resourceName}:${action}`;
 
     if (!req.permissions.has(permissionCode)) {
-      return next(new Error(`Forbidden: You do not have permission to perform this action (${permissionCode})`, { cause: 403 }));
+      return next(new Error("FORBIDDEN", { cause: 403 }));
     }
 
     next();

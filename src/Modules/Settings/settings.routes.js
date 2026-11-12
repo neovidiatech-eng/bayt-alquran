@@ -9,18 +9,20 @@ import * as settingsValidation from "./settings.validation.js";
 const router = Router();
 
 router.get(
-  "/late-discount",
+  "/",
   authentication(),
-  authorize(PERMISSIONS_V2.SETTINGS.VIEW_LATE_DISCOUNT),
-  settingController.getLateDiscount,
+  authorize(PERMISSIONS_V2.SETTINGS.READ),
+  settingController.getSettings,
 );
 
 router.patch(
-  "/late-discount",
+  "/",
   authentication(),
   authorize(PERMISSIONS_V2.SETTINGS.UPDATE),
-  validation(settingsValidation.updateLateDiscount),
-  settingController.updateLateDiscount,
+  validation(settingsValidation.updateSettings),
+  settingController.updateSettings,
 );
 
+
 export default router;
+

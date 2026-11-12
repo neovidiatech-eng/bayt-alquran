@@ -1,7 +1,8 @@
 import { Router } from "express";
 import { authentication } from "../../Middlewares/Authentication.js";
 import { validation } from "../../Middlewares/Validation.js";
-import { authorizeResource } from "../../Middlewares/AuthorizationMiddleware.js";
+import { authorizeResource, authorize } from "../../Middlewares/AuthorizationMiddleware.js";
+import { PERMISSIONS_V2 } from "../../Constants/permissions.constants.js";
 import * as homeworkController from "./homework.controller.js";
 import * as schema from "./homework.validation.js";
 
@@ -42,7 +43,7 @@ router.get(
 router.get(
   "/student-homework",
   authentication(),
-  authorizeResource("homework"),
+  authorize(PERMISSIONS_V2.HOMEWORK.READ_STUDENT_HOMEWORK),
   homeworkController.getStudentHomework,
 );
 

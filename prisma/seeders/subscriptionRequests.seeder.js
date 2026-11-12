@@ -12,48 +12,53 @@ const prisma = new PrismaClient({ adapter });
 export async function seedSubscriptionRequests() {
   console.log("Start seeding subscription requests...");
 
-  const student = await prisma.student.findFirst({
-    where: { user: { email: "john.doe@lms.com" } },
-    include: { user: true }
+  const students = await prisma.student.findMany({
+    take: 5,
+    include: { user: true },
   });
 
-  const plan = await prisma.plans.findFirst({
-    where: { name_en: "Monthly Pro" }
-  });
+  const plans = await prisma.plans.findMany({ take: 3 });
 
-  if (!student || !student.user_id) {
-    console.warn("Student or associated user not found. Skipping subscription requests.");
+  if (students.length === 0 || plans.length === 0) {
+    console.warn("Students or Plans not found. Skipping subscription requests seeding.");
     return;
   }
 
-  if (!plan) {
-    console.warn("Plan 'Monthly Pro' not found. Skipping subscription requests.");
-    return;
+  const sampleRequests = [
+    { studentIndex: 0, planIndex: 0, status: "pending" },
+    { studentIndex: 1, planIndex: 1 % plans.length, status: "approved" },
+    { studentIndex: Math.min(2, students.length - 1), planIndex: 0, status: "rejected" },
+  ];
+
+  for (const reqItem of sampleRequests) {
+    const student = students[reqItem.studentIndex];
+    const plan = plans[reqItem.planIndex];
+
+    if (!student || !student.user_id || !plan) continue;
+
+    const existingRequest = await prisma.subscription_requests.findFirst({
+      where: { user_id: student.user_id, planId: plan.id },
+    });
+
+    if (existingRequest) {
+      await prisma.subscription_requests.update({
+        where: { id: existingRequest.id },
+        data: {
+          status: reqItem.status,
+        },
+      });
+    } else {
+      await prisma.subscription_requests.create({
+        data: {
+          user_id: student.user_id,
+          planId: plan.id,
+          status: reqItem.status,
+        },
+      });
+    }
   }
 
-  const existingRequest = await prisma.subscription_requests.findFirst({
-    where: { user_id: student.user_id }
-  });
-
-  if (existingRequest) {
-    await prisma.subscription_requests.update({
-      where: { id: existingRequest.id },
-      data: {
-        planId: plan.id,
-        status: "pending",
-      },
-    });
-  } else {
-    await prisma.subscription_requests.create({
-      data: {
-        user_id: student.user_id,
-        planId: plan.id,
-        status: "pending",
-      },
-    });
-  }
-
-  console.log("Seeded subscription requests.");
+  console.log("Seeded subscription requests successfully.");
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {

@@ -1,4 +1,4 @@
-import { getNowUTC } from "../../../Utils/Date/time.js";
+import { getNowUTC, formatSchedules } from "../../../Utils/Date/time.js";
 import {
   asyncHandler,
   errorResponse,
@@ -29,6 +29,7 @@ export const getProfile = asyncHandler(async (req, res, next) => {
           teacher: true,
           subject: true,
           student: { include: { user: true } },
+          groupStudents: { include: { student: { include: { user: true } } } },
         },
       },
       teacherSubjects: { include: { subject: true } },
@@ -44,48 +45,71 @@ export const getProfile = asyncHandler(async (req, res, next) => {
     });
   }
 
-  const decTeacherPhone = looksEncrypted(user.user.phone) ? await decryptText({ text: user.user.phone }) : user.user.phone;
-  
+  const decTeacherPhone = looksEncrypted(user.user?.phone)
+    ? await decryptText({ text: user.user.phone })
+    : user.user?.phone;
+
   for (const schedule of user.schedules) {
-    if (schedule.student && schedule.student.user && schedule.student.user.phone) {
-      schedule.student.user.phone = looksEncrypted(schedule.student.user.phone) ? await decryptText({ text: schedule.student.user.phone }) : schedule.student.user.phone;
+    if (schedule.student?.user?.phone) {
+      schedule.student.user.phone = looksEncrypted(schedule.student.user.phone)
+        ? await decryptText({ text: schedule.student.user.phone })
+        : schedule.student.user.phone;
+    }
+    if (schedule.groupStudents) {
+      for (const gs of schedule.groupStudents) {
+        if (gs.student?.user?.phone) {
+          gs.student.user.phone = looksEncrypted(gs.student.user.phone)
+            ? await decryptText({ text: gs.student.user.phone })
+            : gs.student.user.phone;
+        }
+      }
     }
   }
 
-  const students = Object.values(
-    user.schedules.reduce((acc, item) => {
-      const student = item.student;
-      if (!acc[student?.id]) {
-        acc[student.id] = {
+  const studentsMap = {};
+  for (const schedule of user.schedules) {
+    const sessionStudents = schedule.isGroup
+      ? schedule.groupStudents?.map((gs) => gs.student).filter(Boolean) || []
+      : schedule.student
+      ? [schedule.student]
+      : [];
+
+    for (const student of sessionStudents) {
+      if (student?.id && !studentsMap[student.id]) {
+        studentsMap[student.id] = {
           id: student.id,
-          name: student?.user.name,
+          name: student.user?.name || "Student",
           code: `STU-${student.id.slice(0, 3)}`,
-          email: student.user.email,
-          phone: `${student.user.code_country}${student.user.phone}`,
+          email: student.user?.email || "",
+          phone: student.user?.phone
+            ? `${student.user.code_country || ""}${student.user.phone}`
+            : "",
           subject: {
-            name: item.subject.name_en,
-            code: `SUB-${item.subject.id.slice(0, 3)}`,
+            name: schedule.subject?.name_en || "",
+            code: schedule.subject?.id
+              ? `SUB-${schedule.subject.id.slice(0, 3)}`
+              : "",
           },
-          sessions: `${student.sessions_attended}/${student.sessions}`,
+          sessions: `${student.sessions_attended ?? 0}/${student.sessions ?? 0}`,
         };
       }
-      return acc;
-    }, {}),
-  );
+    }
+  }
+  const students = Object.values(studentsMap);
 
   const mapped = {
     teacher: {
       id: user.id,
       user_id: user.user_id,
-      name: user.user.name,
-      email: user.user.email,
+      name: user.user?.name,
+      email: user.user?.email,
       meeting_link: user.meeting_link,
-      phone: `${user.user.code_country} ${decTeacherPhone}`, // ✅ استخدم الـ decrypted phone
+      phone: `${user.user?.code_country || ""} ${decTeacherPhone || ""}`.trim(),
       gender: user.gender,
       hourPrice: user.hour_price,
-      status: user.user.status,
+      status: user.user?.status,
       active: user.active,
-      wallet: user.user.wallet,
+      wallet: user.user?.wallet,
     },
     stats: {
       totalStudents: students.length,
@@ -93,40 +117,62 @@ export const getProfile = asyncHandler(async (req, res, next) => {
       totalSessions: user.schedules.length,
     },
     subjects: user.teacherSubjects.map((ts) => ({
-      nameEn: ts.subject.name_en,
-      nameAr: ts.subject.name_ar,
-      color: ts.subject.color,
-      active: ts.subject.active,
+      nameEn: ts.subject?.name_en,
+      nameAr: ts.subject?.name_ar,
+      color: ts.subject?.color,
+      active: ts.subject?.active,
     })),
-    schedules: user.schedules.map((s) => ({
-      title: s.title,
-      description: s.description,
-      type: s.type,
-      status: s.status,
-      startTime: s.start_time,
-      endTime: s.end_time,
-      isRecurring: s.is_recurring,
-      link: s.link,
-      notes: s.notes,
-      subject: {
-        nameEn: s.subject.name_en,
-        nameAr: s.subject.name_ar,
-        color: s.subject.color,
-      },
-      student: {
-        name: s.student.user.name,
-        email: s.student.user.email,
-        gender: s.student.gender,
-        country: s.student.country,
-        status: s.student.status,
-        sessions: {
-          total: s.student.sessions,
-          attended: s.student.sessions_attended,
-          remaining: s.student.sessions_remaining,
+    schedules: formatSchedules(user.schedules, req.timezone).map((s) => {
+      const studentObj = s.student
+        ? {
+            name: s.student.user?.name,
+            email: s.student.user?.email,
+            gender: s.student.gender,
+            country: s.student.country,
+            status: s.student.status,
+            sessions: {
+              total: s.student.sessions,
+              attended: s.student.sessions_attended,
+              remaining: s.student.sessions_remaining,
+            },
+          }
+        : s.groupStudents?.[0]?.student
+        ? {
+            name: s.groupStudents[0].student.user?.name,
+            email: s.groupStudents[0].student.user?.email,
+            gender: s.groupStudents[0].student.gender,
+            country: s.groupStudents[0].student.country,
+            status: s.groupStudents[0].student.status,
+            sessions: {
+              total: s.groupStudents[0].student.sessions,
+              attended: s.groupStudents[0].student.sessions_attended,
+              remaining: s.groupStudents[0].student.sessions_remaining,
+            },
+          }
+        : null;
+
+      return {
+        title: s.title,
+        description: s.description,
+        type: s.type,
+        status: s.status,
+        startTime: s.start_time,
+        endTime: s.end_time,
+        display_start_time: s.display_start_time,
+        display_end_time: s.display_end_time,
+        display_timezone: s.display_timezone,
+        isRecurring: s.is_recurring,
+        link: s.link,
+        notes: s.notes,
+        subject: {
+          nameEn: s.subject?.name_en || "",
+          nameAr: s.subject?.name_ar || "",
+          color: s.subject?.color || "",
         },
-      },
-    })),
-    students, // ✅ الطلاب الـ unique
+        student: studentObj,
+      };
+    }),
+    students,
   };
 
   return successResponse({
@@ -137,6 +183,7 @@ export const getProfile = asyncHandler(async (req, res, next) => {
     message: "FETCH_SUCCESS",
   });
 });
+
 export const getDashboardStats = asyncHandler(async (req, res, next) => {
   const user = await db.findOne({
     model: "teacher",
@@ -159,11 +206,21 @@ export const getDashboardStats = asyncHandler(async (req, res, next) => {
           teacher: true,
           subject: true,
           student: { include: { user: true } },
+          groupStudents: { include: { student: { include: { user: true } } } },
         },
       },
       teacherSubjects: { include: { subject: true } },
     },
   });
+
+  if (!user) {
+    return errorResponse({
+      next,
+      req,
+      status: 404,
+      message: "TEACHER_NOT_FOUND",
+    });
+  }
 
   const now = getNowUTC();
 
@@ -182,43 +239,53 @@ export const getDashboardStats = asyncHandler(async (req, res, next) => {
     },
   });
 
-  if (!user) {
-    return errorResponse({
-      next,
-      req,
-      status: 404,
-      message: "TEACHER_NOT_FOUND",
-    });
-  }
-
-  const decTeacherPhone = looksEncrypted(user.user.phone) ? await decryptText({ text: user.user.phone }) : user.user.phone;
-  
   for (const schedule of user.schedules) {
-    if (schedule.student && schedule.student.user && schedule.student.user.phone) {
-      schedule.student.user.phone = looksEncrypted(schedule.student.user.phone) ? await decryptText({ text: schedule.student.user.phone }) : schedule.student.user.phone;
+    if (schedule.student?.user?.phone) {
+      schedule.student.user.phone = looksEncrypted(schedule.student.user.phone)
+        ? await decryptText({ text: schedule.student.user.phone })
+        : schedule.student.user.phone;
+    }
+    if (schedule.groupStudents) {
+      for (const gs of schedule.groupStudents) {
+        if (gs.student?.user?.phone) {
+          gs.student.user.phone = looksEncrypted(gs.student.user.phone)
+            ? await decryptText({ text: gs.student.user.phone })
+            : gs.student.user.phone;
+        }
+      }
     }
   }
 
-  const students = Object.values(
-    user.schedules.reduce((acc, item) => {
-      const student = item.student;
-      if (!acc[student?.id]) {
-        acc[student.id] = {
+  const studentsMap = {};
+  for (const schedule of user.schedules) {
+    const sessionStudents = schedule.isGroup
+      ? schedule.groupStudents?.map((gs) => gs.student).filter(Boolean) || []
+      : schedule.student
+      ? [schedule.student]
+      : [];
+
+    for (const student of sessionStudents) {
+      if (student?.id && !studentsMap[student.id]) {
+        studentsMap[student.id] = {
           id: student.id,
-          name: student?.user.name,
+          name: student.user?.name || "Student",
           code: `STU-${student.id.slice(0, 3)}`,
-          email: student.user.email,
-          phone: `${student.user.code_country}${student.user.phone}`,
+          email: student.user?.email || "",
+          phone: student.user?.phone
+            ? `${student.user.code_country || ""}${student.user.phone}`
+            : "",
           subject: {
-            name: item.subject.name_en,
-            code: `SUB-${item.subject.id.slice(0, 3)}`,
+            name: schedule.subject?.name_en || "",
+            code: schedule.subject?.id
+              ? `SUB-${schedule.subject.id.slice(0, 3)}`
+              : "",
           },
-          sessions: `${student.sessions_attended}/${student.sessions}`,
+          sessions: `${student.sessions_attended ?? 0}/${student.sessions ?? 0}`,
         };
       }
-      return acc;
-    }, {}),
-  );
+    }
+  }
+  const students = Object.values(studentsMap);
 
   return successResponse({
     res,
@@ -230,42 +297,63 @@ export const getDashboardStats = asyncHandler(async (req, res, next) => {
         totalSessions: user.schedules.length,
       },
       subjects: user.teacherSubjects.map((ts) => ({
-        nameEn: ts.subject.name_en,
-        nameAr: ts.subject.name_ar,
-        color: ts.subject.color,
-        active: ts.subject.active,
+        nameEn: ts.subject?.name_en,
+        nameAr: ts.subject?.name_ar,
+        color: ts.subject?.color,
+        active: ts.subject?.active,
       })),
-      schedules: user.schedules.map((s) => ({
-        title: s.title,
-        description: s.description,
-        type: s.type,
-        status: s.status,
-        startTime: s.start_time,
-        endTime: s.end_time,
-        isRecurring: s.is_recurring,
-        link: s.link,
-        notes: s.notes,
-        subject: {
-          nameEn: s.subject.name_en,
-          nameAr: s.subject.name_ar,
-          color: s.subject.color,
-        },
-        student: {
-          name: s.student.user.name,
-          email: s.student.user.email,
-          gender: s.student.gender,
-          country: s.student.country,
-          status: s.student.status,
-          sessions: {
-            total: s.student.sessions,
-            attended: s.student.sessions_attended,
-            remaining: s.student.sessions_remaining,
-          },
-        },
-      })),
+      schedules: formatSchedules(user.schedules, req.timezone).map((s) => {
+        const studentObj = s.student
+          ? {
+              name: s.student.user?.name,
+              email: s.student.user?.email,
+              gender: s.student.gender,
+              country: s.student.country,
+              status: s.student.status,
+              sessions: {
+                total: s.student.sessions,
+                attended: s.student.sessions_attended,
+                remaining: s.student.sessions_remaining,
+              },
+            }
+          : s.groupStudents?.[0]?.student
+          ? {
+              name: s.groupStudents[0].student.user?.name,
+              email: s.groupStudents[0].student.user?.email,
+              gender: s.groupStudents[0].student.gender,
+              country: s.groupStudents[0].student.country,
+              status: s.groupStudents[0].student.status,
+              sessions: {
+                total: s.groupStudents[0].student.sessions,
+                attended: s.groupStudents[0].student.sessions_attended,
+                remaining: s.groupStudents[0].student.sessions_remaining,
+              },
+            }
+          : null;
 
+        return {
+          title: s.title,
+          description: s.description,
+          type: s.type,
+          status: s.status,
+          startTime: s.start_time,
+          endTime: s.end_time,
+          display_start_time: s.display_start_time,
+          display_end_time: s.display_end_time,
+          display_timezone: s.display_timezone,
+          isRecurring: s.is_recurring,
+          link: s.link,
+          notes: s.notes,
+          subject: {
+            nameEn: s.subject?.name_en || "",
+            nameAr: s.subject?.name_ar || "",
+            color: s.subject?.color || "",
+          },
+          student: studentObj,
+        };
+      }),
       todaySchedules,
-      students, // ✅ الطلاب الـ unique
+      students,
     },
     status: 200,
     message: "FETCH_SUCCESS",

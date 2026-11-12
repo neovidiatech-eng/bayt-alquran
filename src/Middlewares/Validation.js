@@ -1,6 +1,21 @@
 import joi from "joi";
 import { asyncHandler } from "../Utils/Response.js";
 
+const translateValidationDetail = (req, detail) => {
+  const params = {};
+  let messageKey = detail.message;
+
+  if (detail.context?.limit !== undefined) {
+    params.limit = detail.context.limit;
+    messageKey = messageKey.replace(
+      String(detail.context.limit),
+      "{#limit}",
+    );
+  }
+
+  return req.t(messageKey, params);
+};
+
 export const validation = (schema) => {
   const handler = asyncHandler(async (req, res, next) => {
     const validationErrors = [];
@@ -13,8 +28,8 @@ export const validation = (schema) => {
         validationErrors.push(validationResult.error);
       }
     }
-    const errors = validationErrors.flatMap((error) => 
-      error.details.map((detail) => req.t(detail.message))
+    const errors = validationErrors.flatMap((error) =>
+      error.details.map((detail) => translateValidationDetail(req, detail)),
     );
 
     if (validationErrors.length > 0) {

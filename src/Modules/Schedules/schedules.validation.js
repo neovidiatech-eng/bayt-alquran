@@ -5,14 +5,8 @@ import { notificationType } from "../../Utils/Enums/sessions.js";
 export const createSchedule = {
   body: Joi.object()
     .keys({
-      studentId: generalFeilds.id
-        .messages({
-          "string.pattern.base": "STUDENT_ID_INVALID",
-        })
-        .optional(),
-      isGroup: Joi.boolean().optional(),
-      studentIds: Joi.array().items(generalFeilds.id).min(1).optional(),
-      maxStudents: Joi.number().integer().min(1).optional(),
+      studentId: generalFeilds.id.optional(),
+      studentIds: Joi.array().items(generalFeilds.id).optional(),
       teacherId: generalFeilds.id
         .messages({
           "string.empty": "TEACHER_ID_REQUIRED",
@@ -33,24 +27,26 @@ export const createSchedule = {
           "any.required": "TITLE_REQUIRED",
           "string.pattern.base": "TITLE_INVALID",
         })
-        .required(),
+        .optional(),
       description: generalFeilds.description
         .messages({
           "string.empty": "DESCRIPTION_REQUIRED",
-          "any.required": "DESCRIPTION_REQUIRED",
           "string.pattern.base": "DESCRIPTION_INVALID",
         })
-        .required(),
+        .optional(),
       link: generalFeilds.url
         .messages({
+          "string.empty": "LINK_REQUIRED",
+          "any.required": "LINK_REQUIRED",
           "string.pattern.base": "LINK_INVALID",
         })
+        .required(),
+      notes: generalFeilds.description
+        .messages({
+          "string.empty": "NOTES_REQUIRED",
+          "string.pattern.base": "NOTES_INVALID",
+        })
         .optional(),
-      notes: generalFeilds.description.messages({
-        "string.empty": "NOTES_REQUIRED",
-        "any.required": "NOTES_REQUIRED",
-        "string.pattern.base": "NOTES_INVALID",
-      }),
 
       start_time: generalFeilds.date.greater("now").messages({
         "string.empty": "START_TIME_REQUIRED",
@@ -65,6 +61,8 @@ export const createSchedule = {
           "any.required": "NOTIFICATION_TIME_REQUIRED",
           "string.pattern.base": "NOTIFICATION_TIME_INVALID",
         }),
+      isGroup: Joi.boolean().optional().default(false),
+      maxStudents: Joi.alternatives().try(Joi.string(), Joi.number()).optional().default("1"),
     })
     .required(),
 };
@@ -73,18 +71,18 @@ export const createRecurringSchedule = {
   body: Joi.object()
     .keys({
       studentId: generalFeilds.id.optional(),
-      isGroup: Joi.boolean().optional(),
-      studentIds: Joi.array().items(generalFeilds.id).min(1).optional(),
-      maxStudents: Joi.number().integer().min(1).optional(),
+      studentIds: Joi.array().items(generalFeilds.id).optional(),
       teacherId: generalFeilds.id.required(),
       subject_id: generalFeilds.id.required(),
-      title: generalFeilds.name.required(),
-      description: generalFeilds.description.required(),
-      link: generalFeilds.url.optional(),
-      notes: generalFeilds.description,
+      title: generalFeilds.name.optional(),
+      description: generalFeilds.description.optional(),
+      link: generalFeilds.url.required(),
+      notes: generalFeilds.description.optional(),
+      isGroup: Joi.boolean().optional().default(false),
+      maxStudents: Joi.alternatives().try(Joi.string(), Joi.number()).optional().default("1"),
       startTime: Joi.string()
         .regex(/^([01]\d|2[0-3]):?([0-5]\d)$/)
-        .required()
+        .optional()
         .messages({
           "string.pattern.base": "START_TIME_FORMAT",
         }),
@@ -101,13 +99,37 @@ export const createRecurringSchedule = {
           ),
         )
         .min(1)
-        .required(),
-      startDate: Joi.date().iso().greater("now").required(),
-      endDate: Joi.date().iso().min(Joi.ref("startDate")).greater("now"),
-      count: Joi.number().integer().min(1),
+        .optional(),
+      startDate: Joi.date().iso().greater("now").optional(),
+      endDate: Joi.date().iso().min(Joi.ref("startDate")).greater("now").optional(),
+      count: Joi.number().integer().min(1).optional(),
       notification_Time: Joi.string()
         .valid(...Object.values(notificationType))
         .required(),
+      sessions: Joi.array()
+        .items(
+          Joi.object({
+            date: Joi.string().optional(),
+            startTime: Joi.string()
+              .regex(/^([01]\d|2[0-3]):?([0-5]\d)$/)
+              .optional(),
+            start_time: Joi.date().iso().optional(),
+          })
+        )
+        .min(1)
+        .optional(),
+      customSessions: Joi.array()
+        .items(
+          Joi.object({
+            date: Joi.string().optional(),
+            index: Joi.number().integer().min(0).optional(),
+            newDate: Joi.string().optional(),
+            startTime: Joi.string()
+              .regex(/^([01]\d|2[0-3]):?([0-5]\d)$/)
+              .optional(),
+          })
+        )
+        .optional(),
     })
     .required(),
 };
@@ -119,7 +141,7 @@ export const updateSchedule = {
       description: generalFeilds.description,
       link: generalFeilds.url,
       notes: generalFeilds.description,
-      status: Joi.string().valid("planned", "completed", "missed", "cancelled"),
+      status: Joi.string().valid("scheduled", "planned", "completed", "missed", "cancelled"),
       start_time: Joi.date().greater("now"),
 
       notification_Time: Joi.string().valid(...Object.values(notificationType)),
@@ -140,7 +162,7 @@ export const updateRecurringGroup = {
       description: generalFeilds.description,
       link: generalFeilds.url,
       notes: generalFeilds.description,
-      status: Joi.string().valid("planned", "completed", "missed", "cancelled"),
+      status: Joi.string().valid("scheduled", "planned", "completed", "missed", "cancelled"),
       startTime: Joi.string().regex(/^([01]\d|2[0-3]):?([0-5]\d)$/),
       notification_Time: Joi.string().valid(...Object.values(notificationType)),
     })

@@ -7,6 +7,9 @@ export const PERMISSIONS_V2 = {
   DASHBOARD: {
     READ: "dashboard:read",
   },
+  feedback:{
+    READ: "feedback:read",
+  },
 
   POLICIES: {
     READ: "policies:read",
@@ -19,12 +22,37 @@ export const PERMISSIONS_V2 = {
     VIEW_LATE_DISCOUNT: "settings:view_late_discount",
   },
 
-  // User Management
-  USERS: {
-    READ: "users:read",
-    CREATE: "users:create",
-    UPDATE: "users:update",
-    DELETE: "users:delete",
+  // Teachers Management
+  TEACHERS: {
+    READ: "teachers:read",
+    CREATE: "teachers:create",
+    UPDATE: "teachers:update",
+    DELETE: "teachers:delete",
+    READ_MY_STUDENTS: "teachers:read_my_students",
+  },
+
+  // Students Management
+  STUDENTS: {
+    READ: "students:read",
+    CREATE: "students:create",
+    UPDATE: "students:update",
+    DELETE: "students:delete",
+  },
+
+  // Staff Management
+  STAFF: {
+    READ: "staff:read",
+    CREATE: "staff:create",
+    UPDATE: "staff:update",
+    DELETE: "staff:delete",
+  },
+
+  // Parents Management
+  PARENTS: {
+    READ: "parents:read",
+    CREATE: "parents:create",
+    UPDATE: "parents:update",
+    DELETE: "parents:delete",
   },
   
   // Role Management
@@ -68,6 +96,7 @@ export const PERMISSIONS_V2 = {
     DELETE: "sessions:delete",
     JOIN: "sessions:join",
     LEAVE: "sessions:leave",
+    READ_USER_SCHEDULES: "sessions:read_user_schedules",
   },
 
   // Homework Management
@@ -76,6 +105,17 @@ export const PERMISSIONS_V2 = {
     CREATE: "homework:create",
     UPDATE: "homework:update",
     DELETE: "homework:delete",
+    READ_STUDENT_HOMEWORK: "homework:read_student_homework",
+  },
+
+  // Daily Quran Recitation Management
+  DAILY_QURAN_RECITATION: {
+    READ: "daily_quran_recitation:read",
+    CREATE: "daily_quran_recitation:create",
+    UPDATE: "daily_quran_recitation:update",
+    DELETE: "daily_quran_recitation:delete",
+    READ_MY_RECITATIONS: "daily_quran_recitation:read_my_recitations",
+    READ_TEACHER_RECITATIONS: "daily_quran_recitation:read_teacher_recitations",
   },
 
   // Exam Management
@@ -84,6 +124,7 @@ export const PERMISSIONS_V2 = {
     CREATE: "exams:create",
     UPDATE: "exams:update",
     DELETE: "exams:delete",
+    READ_STUDENT_EXAMS: "exams:read_student_exams",
   },
 
   // Profile Management
@@ -108,6 +149,7 @@ export const PERMISSIONS_V2 = {
     READ: "withdrawals:read",
     CREATE: "withdrawals:create",
     APPROVE: "withdrawals:approve",
+    READ_MY_WITHDRAWALS: "withdrawals:read_my_withdrawals",
   },
 
   // Weekly Report Management
@@ -153,6 +195,7 @@ export const PERMISSIONS_V2 = {
   FINANCES: {
     READ: "finances:read",
     MANAGE: "finances:manage",
+    READ_MY_TRANSACTIONS: "finances:read_my_transactions",
   },
 
   // Rank Management
@@ -170,4 +213,29 @@ export const PERMISSIONS_V2 = {
     UPDATE: "subjects:update",
     DELETE: "subjects:delete",
   },
+
+  // Violations & Penalties Management
+  VIOLATIONS: {
+    READ: "violations:read",
+    CREATE: "violations:create",
+    MANAGE: "violations:manage",
+    READ_MY_VIOLATIONS: "violations:read_my_violations",
+  },
+  MODERATORS: {
+    READ: "moderators:read",
+    CREATE: "moderators:create",
+    UPDATE: "moderators:update",
+    DELETE: "moderators:delete",
+    MANAGE: "moderators:manage",
+    READ_STUDENTS: "moderators:read_students",
+  },
+
+  CURRENCIES: {
+    READ: "currencies:read",
+    CREATE: "currencies:create",
+    UPDATE: "currencies:update",
+    DELETE: "currencies:delete",
+  },
+
 };
+

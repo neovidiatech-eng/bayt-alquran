@@ -57,12 +57,10 @@ export const getProfile = asyncHandler(async (req, res, next) => {
       },
     },
   });
-  console.log(user);
 
   const phoneToPhone = looksEncrypted(user.user.phone)
     ? await decryptText({ text: user.user.phone })
     : user.user.phone;
-  console.log();
 
   const userDecrypted = {
     ...user,
@@ -70,6 +68,7 @@ export const getProfile = asyncHandler(async (req, res, next) => {
       ...user.user,
       phone: phoneToPhone,
     },
+    schedules: formatSchedules(user.schedules, req.timezone),
   };
   return successResponse({
     res,
@@ -111,7 +110,7 @@ export const getDashboardStats = asyncHandler(async (req, res, next) => {
     });
   }
 
-  const tz = req.user.timezone || "Africa/Cairo";
+  const tz = req.timezone || "Africa/Cairo";
   const localNow = dayjs().tz(tz);
   const startOfDay = localNow.startOf("day").utc().toDate();
   const endOfDay = localNow.endOf("day").utc().toDate();
@@ -147,12 +146,20 @@ export const getDashboardStats = asyncHandler(async (req, res, next) => {
     }),
     db.count({
       model: "schedule",
-      where: { studentId: student.id },
+      where: {
+        OR: [
+          { studentId: student.id },
+          { groupStudents: { some: { studentId: student.id } } },
+        ],
+      },
     }),
     db.findMany({
       model: "schedule",
       where: {
-        studentId: student.id,
+        OR: [
+          { studentId: student.id },
+          { groupStudents: { some: { studentId: student.id } } },
+        ],
         start_time: {
           gte: startOfDay,
           lte: endOfDay,

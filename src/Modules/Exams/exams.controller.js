@@ -4,6 +4,10 @@ import {
   successResponse,
 } from "../../Utils/Response.js";
 import * as db from "../../database/dbService.js";
+import {
+  getModeratorStudentIds,
+  buildStudentExamFilter,
+} from "../../Utils/Permissions/permissions.js";
 
 export const createExam = asyncHandler(async (req, res, next) => {
   const { title, totalMarks, studentId, subjectId, status, dueDate, duration } =
@@ -30,6 +34,11 @@ export const createExam = asyncHandler(async (req, res, next) => {
     !["admin", "super_admin", "teacher"].includes(req.user.role?.name)
   ) {
     return errorResponse({ req, next, message: "ONLY_TEACHERS_ADMINS_CREATE", status: 403 });
+  }
+
+  const assignedStudentIds = await getModeratorStudentIds(req.user);
+  if (assignedStudentIds !== null && !assignedStudentIds.includes(studentId)) {
+    return errorResponse({ req, next, message: "FORBIDDEN", status: 403 });
   }
 
   // If teacher, assign automatically, if admin we might need teacherId passed. Let's use user's teacher id or if not, get it from body if admin.
@@ -85,6 +94,16 @@ export const updateExam = asyncHandler(async (req, res, next) => {
     return errorResponse({ req, next, message: "UNAUTHORIZED_UPDATE", status: 403 });
   }
 
+  const assignedStudentIds = await getModeratorStudentIds(req.user);
+  if (assignedStudentIds !== null) {
+    if (
+      !assignedStudentIds.includes(examExists.studentId) ||
+      (studentId && !assignedStudentIds.includes(studentId))
+    ) {
+      return errorResponse({ req, next, message: "FORBIDDEN", status: 403 });
+    }
+  }
+
   const exam = await db.updateOne({
     model: "exam",
     where: { id },
@@ -122,6 +141,11 @@ export const deleteExam = asyncHandler(async (req, res, next) => {
     return errorResponse({ req, next, message: "UNAUTHORIZED_DELETE", status: 403 });
   }
 
+  const assignedStudentIds = await getModeratorStudentIds(req.user);
+  if (assignedStudentIds !== null && !assignedStudentIds.includes(examExists.studentId)) {
+    return errorResponse({ req, next, message: "FORBIDDEN", status: 403 });
+  }
+
   await db.deleteOne({
     model: "exam",
     where: { id },
@@ -152,11 +176,17 @@ export const getExam = asyncHandler(async (req, res, next) => {
     return errorResponse({ req, next, message: "EXAM_NOT_FOUND", status: 404 });
   }
 
+  const assignedStudentIds = await getModeratorStudentIds(req.user);
+  if (assignedStudentIds !== null && !assignedStudentIds.includes(exam.studentId)) {
+    return errorResponse({ req, next, message: "FORBIDDEN", status: 403 });
+  }
+
   return successResponse({ res, req, message: "FETCH_SUCCESS", data: exam, status: 200 });
 });
 export const getStudentExams = asyncHandler(async (req, res, next) => {
+  const assignedStudentIds = await getModeratorStudentIds(req.user);
   const user = req.user.student || req.user.teacher;
-  if (!user) {
+  if (!user && assignedStudentIds === null) {
     return errorResponse({ req, next, message: "STUDENT_NOT_FOUND", status: 404 });
   }
   const where = {};
@@ -164,6 +194,8 @@ export const getStudentExams = asyncHandler(async (req, res, next) => {
     where.studentId = user?.id;
   } else if (req.user.role?.name === "teacher") {
     where.teacherId = user?.id;
+  } else if (assignedStudentIds !== null) {
+    where.studentId = { in: assignedStudentIds };
   }
 
   const exams = await db.findMany({
@@ -193,11 +225,18 @@ export const getAllExams = asyncHandler(async (req, res, next) => {
   if (teacherId) condition.teacherId = teacherId;
   if (status) condition.status = status;
 
+  const assignedStudentIds = await getModeratorStudentIds(req.user);
+
   // Role based filtering
   if (req.user.role?.name === "student") {
     condition.studentId = req.user.student?.id;
   } else if (req.user.role?.name === "teacher" && !teacherId) {
     condition.teacherId = req.user.teacher?.id;
+  } else if (assignedStudentIds !== null) {
+    Object.assign(
+      condition,
+      buildStudentExamFilter(assignedStudentIds, studentId),
+    );
   }
 
   const { items, pagination } = await db.findManyWithPaginationAndCount({
